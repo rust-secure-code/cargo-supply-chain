@@ -1,7 +1,13 @@
 use std::collections::HashSet;
 
-use cargo_metadata::Dependency;
+use cargo_metadata::Package;
 use crates_io_api::{User, SyncClient};
+
+pub enum SourcedPackage {
+    Local(Package),
+    CratesIo(Package),
+    Foreign(Package),
+}
 
 pub enum Author {
     CratesUser {
@@ -10,18 +16,27 @@ pub enum Author {
         name: Option<String>,
         mail: Option<String>,
     },
-    UnknownSource,
+    Local {
+        name: String,
+    },
+    Foreign {
+        name: String,
+    },
     CrateError {
+        crate_: String,
+        version: String,
     },
 }
 
-pub fn authors_of(deps: &[Dependency])
+pub fn authors_of(deps: &[SourcedPackage])
     -> impl Iterator<Item=Author> + '_
 {
     struct AuthorIter<'deps> {
-        dependencies: &'deps [Dependency],
+        dependencies: &'deps [SourcedPackage],
         named: HashSet<u64>,
-        todo: Vec<User>,
+        local_todo: Vec<String>,
+        foreign_todo: Vec<String>,
+        crates_todo: Vec<User>,
         client: SyncClient,
     }
 
@@ -29,7 +44,15 @@ pub fn authors_of(deps: &[Dependency])
         type Item = Author;
         fn next(&mut self) -> Option<Author> {
             loop {
-                while let Some(user) = self.todo.pop() {
+                while let Some(name) = self.local_todo.pop() {
+                    return Some(Author::Local { name })
+                }
+
+                while let Some(name) = self.foreign_todo.pop() {
+                    return Some(Author::Foreign { name })
+                }
+
+                while let Some(user) = self.crates_todo.pop() {
                     if self.named.contains(&user.id) {
                         continue
                     }
@@ -46,13 +69,23 @@ pub fn authors_of(deps: &[Dependency])
                 let (first, tail) = self.dependencies.split_first()?;
                 self.dependencies = tail;
 
-                if let Some(_) = first.registry {
-                    return Some(Author::UnknownSource);
-                }
+                let crates_io = match first {
+                    SourcedPackage::Foreign(package) => {
+                        self.foreign_todo = package.authors.clone();
+                        continue;
+                    }
+                    SourcedPackage::Local(package) => {
+                        self.local_todo = package.authors.clone();
+                        continue;
+                    }
+                    SourcedPackage::CratesIo(package) => package,
+                };
 
-                match self.client.crate_authors(&first.name, &format!("{}", first.req)) {
-                    Err(_) => return Some(Author::CrateError { }),
-                    Ok(authors) => self.todo = authors.users,
+                let crate_ = crates_io.name.clone();
+                let version = format!("{}", crates_io.version);
+                match self.client.crate_authors(&crate_, &version) {
+                    Err(_) => return Some(Author::CrateError { crate_, version }),
+                    Ok(authors) => self.crates_todo = authors.users,
                 }
             }
         }
@@ -64,7 +97,9 @@ pub fn authors_of(deps: &[Dependency])
     AuthorIter {
         dependencies: deps,
         named: HashSet::new(),
-        todo: vec![],
+        local_todo: vec![],
+        foreign_todo: vec![],
+        crates_todo: vec![],
         client,
     }
 }
@@ -76,12 +111,21 @@ impl std::fmt::Display for Author {
                 let display_name = name.as_ref().unwrap_or(&login);
                 write!(f, "{}", display_name)?;
                 if let Some(mail) = mail {
-                    write!(f, "({})", mail)?;
+                    write!(f, "\t{}\tcrates.io", mail)?;
+                } else {
+                    write!(f, "\t\tcrates.io")?;
                 }
                 Ok(())
             },
-            Author::UnknownSource => write!(f, "Unknown crate source (private registry?)"),
-            Author::CrateError {} => write!(f, "Error resolving crate"),
+            Author::Local { name } => {
+                write!(f, "{}\t\tlocal", name)
+            }
+            Author::Foreign { name } => {
+                write!(f, "{}\t\tunknown registry", name)
+            }
+            Author::CrateError { crate_, version } => {
+                write!(f, "Error resolving crate `{}: {}`", crate_, version)
+            },
         }
     }
 }

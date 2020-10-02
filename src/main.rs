@@ -6,7 +6,8 @@
 //! * An analysis of all the contributors you implicitly trust by building their software. This
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
-use cargo_metadata::MetadataCommand;
+use std::collections::HashMap;
+use cargo_metadata::{MetadataCommand, Package, PackageId};
 
 mod authors;
 mod owners;
@@ -39,13 +40,50 @@ fn authors(mut args: std::env::ArgsOs) {
         .exec()
         .unwrap();
 
-    let mut dependencies = vec![];
-    for root in meta.workspace_members {
-        let data = meta.packages.iter().find(|package| {
-            package.id == root
-        }).unwrap();
-        dependencies.extend(data.dependencies.iter().cloned());
+    enum DepKind {
+        Local,
+        CratesIo,
+        Foreign,
     }
+
+    let mut how: HashMap<PackageId, DepKind> = HashMap::new();
+    let what: HashMap<PackageId, Package> = meta
+        .packages
+        .iter()
+        .map(|package| (package.id.clone(), package.clone()))
+        .collect();
+
+    for pkg in &meta.packages {
+        // Suppose every package is foreign, until proven otherwise..
+        how.insert(pkg.id.clone(), DepKind::Foreign);
+    }
+
+    // Find the crates.io dependencies..
+    for pkg in meta.packages {
+        for dep in &pkg.dependencies {
+            if let Some(_) = dep.registry {
+                continue;
+            }
+
+            // TODO:: not critical but we should.
+        }
+    }
+
+    for pkg in meta.workspace_members {
+        *how.get_mut(&pkg).unwrap() = DepKind::Local;
+    }
+
+    let dependencies: Vec<_> = how
+        .iter()
+        .map(|(id, kind)| {
+            let dep = what.get(id).cloned().unwrap();
+            match kind {
+                DepKind::Local => authors::SourcedPackage::Local(dep),
+                DepKind::Foreign => authors::SourcedPackage::Foreign(dep),
+                DepKind::CratesIo => authors::SourcedPackage::CratesIo(dep),
+            }
+        })
+        .collect();
 
     for author in authors::authors_of(&dependencies) {
         println!("{}", author);
