@@ -55,11 +55,11 @@ fn authors(mut args: std::env::ArgsOs) {
     // Find the crates.io dependencies..
     for pkg in meta.packages {
         for dep in &pkg.dependencies {
-            if let Some(_) = dep.registry {
-                continue;
+            if let Some(source) = dep.source.as_ref() {
+                if source == "registry+https://github.com/rust-lang/crates.io-index" {
+                    how.insert(pkg.id.clone(), PkgSource::CratesIo);
+                }
             }
-
-            // TODO:: not critical but we should.
         }
     }
 
