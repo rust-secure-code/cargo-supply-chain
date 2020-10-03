@@ -6,8 +6,8 @@
 //! * An analysis of all the contributors you implicitly trust by building their software. This
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
-use std::collections::HashMap;
 use cargo_metadata::{MetadataCommand, Package, PackageId};
+use std::collections::HashMap;
 
 mod authors;
 mod owners;
@@ -36,9 +36,7 @@ fn authors(mut args: std::env::ArgsOs) {
         bail_unknown_author_arg(arg)
     }
 
-    let meta = MetadataCommand::new()
-        .exec()
-        .unwrap();
+    let meta = MetadataCommand::new().exec().unwrap();
 
     enum DepKind {
         Local,
@@ -112,12 +110,18 @@ fn bail_unknown_command(arg: &str) -> ! {
 }
 
 fn bail_unknown_author_arg(arg: std::ffi::OsString) {
-    eprintln!("Bad argument to authors command: {}", std::path::Path::new(&arg).display());
+    eprintln!(
+        "Bad argument to authors command: {}",
+        std::path::Path::new(&arg).display()
+    );
     std::process::exit(1);
 }
 
 fn bail_unknown_owners_arg(arg: std::ffi::OsString) {
-    eprintln!("Bad argument to owners command: {}", std::path::Path::new(&arg).display());
+    eprintln!(
+        "Bad argument to owners command: {}",
+        std::path::Path::new(&arg).display()
+    );
     std::process::exit(1);
 }
 
@@ -133,10 +137,12 @@ fn bail_no_tool() -> ! {
 }
 
 fn eprint_help() {
-    eprintln!("Usage: cargo supply-chain COMMAND [OPTIONS...]\n
+    eprintln!(
+        "Usage: cargo supply-chain COMMAND [OPTIONS...]\n
 
   Commands:
     authors\t\tList all authors in the dependency graph\n
     owners\t\tList all owners in the dependency graph\n
-");
+"
+    );
 }
