@@ -42,11 +42,11 @@ pub fn authors_of(deps: &[SourcedPackage]) -> impl Iterator<Item = Author> + '_ 
         type Item = Author;
         fn next(&mut self) -> Option<Author> {
             loop {
-                while let Some(name) = self.local_todo.pop() {
+                if let Some(name) = self.local_todo.pop() {
                     return Some(Author::Local { name });
                 }
 
-                while let Some(name) = self.foreign_todo.pop() {
+                if let Some(name) = self.foreign_todo.pop() {
                     return Some(Author::Foreign { name });
                 }
 

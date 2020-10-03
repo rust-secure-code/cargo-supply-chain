@@ -22,7 +22,7 @@ fn main() {
             Some("authors") => return authors(args),
             Some("owners") => return owners(args),
             Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
-            Some(arg) if arg.starts_with("-") => bail_unknown_short_option(arg),
+            Some(arg) if arg.starts_with('-') => bail_unknown_short_option(arg),
             Some(arg) => bail_unknown_command(arg),
         }
     }
