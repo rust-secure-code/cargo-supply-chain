@@ -7,12 +7,12 @@
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
-use std::collections::{HashMap, HashSet};
 use common::*;
+use std::collections::{HashMap, HashSet};
 
 mod authors;
-mod owners;
 mod common;
+mod owners;
 
 fn main() {
     let mut args = std::env::args_os();
@@ -71,7 +71,10 @@ fn authors(mut args: std::env::ArgsOs) {
         .iter()
         .map(|(id, kind)| {
             let dep = what.get(id).cloned().unwrap();
-            SourcedPackage { source: kind.clone(), package: dep}
+            SourcedPackage {
+                source: kind.clone(),
+                package: dep,
+            }
         })
         .collect();
 

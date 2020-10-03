@@ -2,12 +2,8 @@ use crate::common::*;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Author {
-    Local {
-        name: String,
-    },
-    Foreign {
-        name: String,
-    },
+    Local { name: String },
+    Foreign { name: String },
 }
 
 pub fn authors_of(deps: &[SourcedPackage]) -> impl Iterator<Item = Author> + '_ {
