@@ -3,12 +3,14 @@ use std::collections::HashSet;
 use cargo_metadata::Package;
 use crates_io_api::{SyncClient, User};
 
+#[derive(Debug, Clone)]
 pub enum SourcedPackage {
     Local(Package),
     CratesIo(Package),
     Foreign(Package),
 }
 
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Author {
     CratesUser {
         id: u64,

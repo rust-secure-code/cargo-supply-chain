@@ -6,7 +6,7 @@
 //! * An analysis of all the contributors you implicitly trust by building their software. This
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
-use cargo_metadata::{MetadataCommand, Package, PackageId};
+use cargo_metadata::{MetadataCommand, Package, PackageId, CargoOpt::AllFeatures};
 use std::collections::HashMap;
 
 mod authors;
@@ -36,7 +36,7 @@ fn authors(mut args: std::env::ArgsOs) {
         bail_unknown_author_arg(arg)
     }
 
-    let meta = MetadataCommand::new().exec().unwrap();
+    let meta = MetadataCommand::new().features(AllFeatures).exec().unwrap();
 
     enum DepKind {
         Local,
