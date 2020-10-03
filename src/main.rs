@@ -8,9 +8,11 @@
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use std::collections::{HashMap, HashSet};
+use common::*;
 
 mod authors;
 mod owners;
+mod common;
 
 fn main() {
     let mut args = std::env::args_os();
@@ -38,13 +40,7 @@ fn authors(mut args: std::env::ArgsOs) {
 
     let meta = MetadataCommand::new().features(AllFeatures).exec().unwrap();
 
-    enum DepKind {
-        Local,
-        CratesIo,
-        Foreign,
-    }
-
-    let mut how: HashMap<PackageId, DepKind> = HashMap::new();
+    let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
     let what: HashMap<PackageId, Package> = meta
         .packages
         .iter()
@@ -53,7 +49,7 @@ fn authors(mut args: std::env::ArgsOs) {
 
     for pkg in &meta.packages {
         // Suppose every package is foreign, until proven otherwise..
-        how.insert(pkg.id.clone(), DepKind::Foreign);
+        how.insert(pkg.id.clone(), PkgSource::Foreign);
     }
 
     // Find the crates.io dependencies..
@@ -68,18 +64,14 @@ fn authors(mut args: std::env::ArgsOs) {
     }
 
     for pkg in meta.workspace_members {
-        *how.get_mut(&pkg).unwrap() = DepKind::Local;
+        *how.get_mut(&pkg).unwrap() = PkgSource::Local;
     }
 
     let dependencies: Vec<_> = how
         .iter()
         .map(|(id, kind)| {
             let dep = what.get(id).cloned().unwrap();
-            match kind {
-                DepKind::Local => authors::SourcedPackage::Local(dep),
-                DepKind::Foreign => authors::SourcedPackage::Foreign(dep),
-                DepKind::CratesIo => authors::SourcedPackage::CratesIo(dep),
-            }
+            SourcedPackage { source: kind.clone(), package: dep}
         })
         .collect();
 

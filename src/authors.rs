@@ -1,14 +1,6 @@
 use std::collections::HashSet;
-
-use cargo_metadata::Package;
 use crates_io_api::{SyncClient, User};
-
-#[derive(Debug, Clone)]
-pub enum SourcedPackage {
-    Local(Package),
-    CratesIo(Package),
-    Foreign(Package),
-}
+use crate::common::*;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Author {
@@ -69,24 +61,14 @@ pub fn authors_of(deps: &[SourcedPackage]) -> impl Iterator<Item = Author> + '_ 
                 let (first, tail) = self.dependencies.split_first()?;
                 self.dependencies = tail;
 
-                let crates_io = match first {
-                    SourcedPackage::Foreign(package) => {
-                        self.foreign_todo = package.authors.clone();
-                        continue;
+                match first.source {
+                    PkgSource::Local => {
+                        self.local_todo = first.package.authors.clone();
                     }
-                    SourcedPackage::Local(package) => {
-                        self.local_todo = package.authors.clone();
-                        continue;
+                    PkgSource::CratesIo | PkgSource::Foreign => {
+                        self.foreign_todo = first.package.authors.clone();
                     }
-                    SourcedPackage::CratesIo(package) => package,
                 };
-
-                let crate_ = crates_io.name.clone();
-                let version = format!("{}", crates_io.version);
-                match self.client.crate_authors(&crate_, &version) {
-                    Err(_) => return Some(Author::CrateError { crate_, version }),
-                    Ok(authors) => self.crates_todo = authors.users,
-                }
             }
         }
     }
