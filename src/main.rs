@@ -6,7 +6,7 @@
 //! * An analysis of all the contributors you implicitly trust by building their software. This
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
-use cargo_metadata::{MetadataCommand, Package, PackageId, CargoOpt::AllFeatures};
+use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use std::collections::{HashMap, HashSet};
 
 mod authors;
