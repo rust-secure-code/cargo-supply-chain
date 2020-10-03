@@ -7,7 +7,7 @@
 //!   might have both a sobering and humbling effect.
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{MetadataCommand, Package, PackageId, CargoOpt::AllFeatures};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 mod authors;
 mod owners;
@@ -83,8 +83,11 @@ fn authors(mut args: std::env::ArgsOs) {
         })
         .collect();
 
-    for author in authors::authors_of(&dependencies) {
-        println!("{}", author);
+    let authors: HashSet<_> = authors::authors_of(&dependencies).collect();
+    let mut display_authors: Vec<_> = authors.iter().map(|a| a.to_string()).collect();
+    display_authors.sort_unstable();
+    for a in display_authors {
+        println!("{}", a);
     }
 }
 
