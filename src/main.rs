@@ -64,6 +64,10 @@ fn owners(mut args: std::env::ArgsOs) {
     crates_io_names.sort_unstable();
     crates_io_names.dedup();
 
+    // TODO: list local crates
+
+    // TODO: list crates from git or registiers other than crates.io
+
     eprintln!("Fetching owner info from crates.io");
     eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     let mut client = crates_io::ApiClient::new();
@@ -86,6 +90,8 @@ fn owners(mut args: std::env::ArgsOs) {
         );
     }
 
+    // TODO: list individual owners
+    
     println!("\nNote: there may be outstanding owner invitations. crates.io provides no way to list them.");
     println!("Invitations are also impossible to revoke, and they never expire.");
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
