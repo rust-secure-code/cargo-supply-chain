@@ -21,6 +21,10 @@ impl Default for ApiClient {
 }
 
 impl ApiClient {
+    pub fn new() -> Self {
+        ApiClient::default()
+    }
+
     pub fn get(&mut self, url: &str) -> ureq::Request {
         self.wait_to_honor_rate_limit();
         self.agent.get(url)

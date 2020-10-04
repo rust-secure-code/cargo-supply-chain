@@ -23,6 +23,8 @@ name = "cargo-supply-chain"
 version = "0.0.1"
 dependencies = [
  "cargo_metadata",
+ "serde",
+ "serde_json",
  "ureq",
 ]
 
@@ -453,6 +455,8 @@ dependencies = [
  "log",
  "qstring",
  "rustls",
+ "serde",
+ "serde_json",
  "url",
  "webpki",
  "webpki-roots",

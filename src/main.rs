@@ -91,6 +91,9 @@ fn owners(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
         bail_unknown_author_arg(arg)
     }
+    let mut client = crates_io::ApiClient::new();
+    let result = owners::owner_users(&mut client, "auditable").unwrap();
+    println!("{:?}", result);
 }
 
 fn bail_unknown_option(arg: &str) -> ! {
