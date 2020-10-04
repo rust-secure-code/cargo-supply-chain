@@ -28,5 +28,17 @@ pub fn owner_users(client: &mut ApiClient, crate_name: &str) -> Result<Vec<Owner
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
     let data: OwnersResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.users)
-    
+}
+
+pub fn owner_teams(client: &mut ApiClient, crate_name: &str) -> Result<Vec<OwnerData>> {
+    let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
+    let data: OwnersResponse = client.get(&url).call().into_json_deserialize()?;
+    Ok(data.users)
+}
+
+pub fn owners(client: &mut ApiClient, crate_name: &str) -> Result<Vec<OwnerData>> {
+    let mut users = owner_users(client, crate_name)?;
+    let mut teams = owner_teams(client, crate_name)?;
+    users.extend(teams.drain(..));
+    Ok(users)
 }
