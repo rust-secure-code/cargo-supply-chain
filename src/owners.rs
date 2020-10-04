@@ -3,8 +3,13 @@ use serde::Deserialize;
 use std::io::Result;
 
 #[derive(Deserialize)]
-struct OwnersResponse {
+struct UsersResponse {
     users: Vec<OwnerData>,
+}
+
+#[derive(Deserialize)]
+struct TeamsResponse {
+    teams: Vec<OwnerData>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -26,14 +31,14 @@ enum OwnerKind {
 
 pub fn owner_users(client: &mut ApiClient, crate_name: &str) -> Result<Vec<OwnerData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
-    let data: OwnersResponse = client.get(&url).call().into_json_deserialize()?;
+    let data: UsersResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.users)
 }
 
 pub fn owner_teams(client: &mut ApiClient, crate_name: &str) -> Result<Vec<OwnerData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
-    let data: OwnersResponse = client.get(&url).call().into_json_deserialize()?;
-    Ok(data.users)
+    let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
+    Ok(data.teams)
 }
 
 pub fn owners(client: &mut ApiClient, crate_name: &str) -> Result<Vec<OwnerData>> {

@@ -92,7 +92,7 @@ fn owners(mut args: std::env::ArgsOs) {
         bail_unknown_author_arg(arg)
     }
     let mut client = crates_io::ApiClient::new();
-    let result = owners::owner_users(&mut client, "auditable").unwrap();
+    let result = owners::owners(&mut client, "tokio").unwrap();
     println!("{:?}", result);
 }
 
