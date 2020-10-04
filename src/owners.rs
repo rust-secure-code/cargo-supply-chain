@@ -14,17 +14,40 @@ struct TeamsResponse {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct OwnerData {
-    id: u64,
-    login: String,
-    kind: OwnerKind,
-    url: String,
-    name: String,
-    avatar: String,
+    pub id: u64,
+    pub login: String,
+    pub kind: OwnerKind,
+    pub url: Option<String>,
+    pub name: Option<String>,
+    pub avatar: Option<String>,
+}
+
+impl PartialEq for OwnerData {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for OwnerData {
+    // holds for OwnerData because we're comparing u64 IDs, and it holds for u64
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl PartialOrd for OwnerData {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.id.cmp(&other.id))
+    }
+}
+
+impl Ord for OwnerData {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
 }
 
 #[derive(Deserialize, Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
-enum OwnerKind {
+pub enum OwnerKind {
     user,
     team,
 }

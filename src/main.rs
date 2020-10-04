@@ -8,7 +8,8 @@
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use common::*;
-use std::collections::{HashMap, HashSet};
+use owners::OwnerData;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod authors;
 mod common;
@@ -39,6 +40,100 @@ fn authors(mut args: std::env::ArgsOs) {
         bail_unknown_author_arg(arg)
     }
 
+    let dependencies = sourced_dependencies();
+
+    let authors: HashSet<_> = authors::authors_of(&dependencies).collect();
+    let mut display_authors: Vec<_> = authors.iter().map(|a| a.to_string()).collect();
+    display_authors.sort_unstable();
+    for a in display_authors {
+        println!("{}", a);
+    }
+}
+
+fn owners(mut args: std::env::ArgsOs) {
+    if let Some(arg) = args.next() {
+        bail_unknown_owners_arg(arg)
+    }
+    let dependencies = sourced_dependencies();
+    let mut crates_io_names: Vec<String> = dependencies
+        .iter()
+        .filter(|p| p.source == PkgSource::CratesIo)
+        .map(|p| p.package.name.clone())
+        .collect();
+    // Collecting into a HashSet is less user-friendly because order varies between runs
+    crates_io_names.sort_unstable();
+    crates_io_names.dedup();
+
+    eprintln!("Fetching owner info from crates.io");
+    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+    let mut client = crates_io::ApiClient::new();
+    let mut owner_users: HashMap<String, Vec<OwnerData>> = HashMap::new();
+    let mut owner_teams: HashMap<String, Vec<OwnerData>> = HashMap::new();
+    for (i, crate_name) in crates_io_names.iter().enumerate() {
+        eprintln!(
+            "Fetching data for \"{}\" ({}/{})",
+            crate_name,
+            i,
+            crates_io_names.len()
+        );
+        owner_users.insert(
+            crate_name.clone(),
+            owners::owner_users(&mut client, crate_name).unwrap(),
+        );
+        owner_teams.insert(
+            crate_name.clone(),
+            owners::owner_teams(&mut client, crate_name).unwrap(),
+        );
+    }
+
+    println!("Note: there may be outstanding owner invitations.");
+
+    if owner_teams.len() > 0 {
+        println!("\nYou also implicitly trust all members of the following teams:");
+        let team_to_crate_map = transpose_owners_map(&owner_teams);
+        for (team, crates) in team_to_crate_map {
+            let crate_list = pretty_print_crate_list(&crates);
+            if let Some(url) = &team.url {
+                println!("\"{}\" ({}) via crates: {}", &team.login, url, crate_list);
+            } else {
+                println!("\"{}\" via crates: {}", &team.login, crate_list);
+            }
+        }
+        println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
+    }
+}
+
+fn pretty_print_crate_list(list: &[String]) -> String {
+    let mut result = String::new();
+    let mut first_loop = true;
+    for crate_name in list {
+        if !first_loop {
+            result.push_str(", ");
+        }
+        first_loop = false;
+        result.push_str(crate_name.as_str());
+    }
+    result
+}
+
+/// Turns a crate-to-owners mapping into owner-to-crates mapping.
+/// BTreeMap is used because OwnerData doesn't implement Hash.
+fn transpose_owners_map(
+    input: &HashMap<String, Vec<OwnerData>>,
+) -> BTreeMap<OwnerData, Vec<String>> {
+    let mut result: BTreeMap<OwnerData, Vec<String>> = BTreeMap::new();
+    for (crate_name, owners) in input.iter() {
+        for owner in owners {
+            result
+                .entry(owner.clone())
+                .or_default()
+                .push(crate_name.clone());
+        }
+    }
+    result
+}
+
+fn sourced_dependencies() -> Vec<SourcedPackage> {
     let meta = MetadataCommand::new().features(AllFeatures).exec().unwrap();
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
@@ -79,21 +174,7 @@ fn authors(mut args: std::env::ArgsOs) {
         })
         .collect();
 
-    let authors: HashSet<_> = authors::authors_of(&dependencies).collect();
-    let mut display_authors: Vec<_> = authors.iter().map(|a| a.to_string()).collect();
-    display_authors.sort_unstable();
-    for a in display_authors {
-        println!("{}", a);
-    }
-}
-
-fn owners(mut args: std::env::ArgsOs) {
-    if let Some(arg) = args.next() {
-        bail_unknown_author_arg(arg)
-    }
-    let mut client = crates_io::ApiClient::new();
-    let result = owners::owners(&mut client, "tokio").unwrap();
-    println!("{:?}", result);
+    dependencies
 }
 
 fn bail_unknown_option(arg: &str) -> ! {
