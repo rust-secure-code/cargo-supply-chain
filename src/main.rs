@@ -86,17 +86,19 @@ fn owners(mut args: std::env::ArgsOs) {
         );
     }
 
-    println!("Note: there may be outstanding owner invitations.");
+    println!("\nNote: there may be outstanding owner invitations. crates.io provides no way to list them.");
+    println!("Invitations are also impossible to revoke, and they never expire.");
+    println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
     if owner_teams.len() > 0 {
-        println!("\nYou also implicitly trust all members of the following teams:");
+        println!("\nYou also implicitly trust all members of the following teams:\n");
         let team_to_crate_map = transpose_owners_map(&owner_teams);
-        for (team, crates) in team_to_crate_map {
+        for (team, crates) in team_to_crate_map.iter() {
             let crate_list = pretty_print_crate_list(&crates);
             if let Some(url) = &team.url {
-                println!("\"{}\" ({}) via crates: {}", &team.login, url, crate_list);
+                println!(" - \"{}\" ({}) via crates: {}", &team.login, url, crate_list);
             } else {
-                println!("\"{}\" via crates: {}", &team.login, crate_list);
+                println!(" - \"{}\" via crates: {}", &team.login, crate_list);
             }
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
