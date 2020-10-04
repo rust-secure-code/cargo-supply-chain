@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 mod authors;
 mod common;
+mod crates_io;
 mod owners;
 
 fn main() {

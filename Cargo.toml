@@ -10,3 +10,4 @@ categories = ["development-tools::cargo-plugins", "command-line-utilities"]
 
 [dependencies]
 cargo_metadata = "0.11.3"
+ureq = "1.5.0"
