@@ -99,12 +99,12 @@ fn publishers(mut args: std::env::ArgsOs) {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
         let user_to_crate_map = transpose_publishers_map(&publisher_users);
         let map_for_display = sort_transposed_map_for_display(user_to_crate_map);
-        for (user, crates) in map_for_display.iter() {
+        for (i, (user, crates)) in map_for_display.iter().enumerate() {
             // We do not print usernames, since you can embed terminal control sequences in them
             // and erase yourself from the output that way.
             // TODO: check if it's possible to smuggle those into github/crates.io usernames
             let crate_list = comma_separated_list(&crates);
-            println!(" - {} via crates: {}", &user.login, crate_list);
+            println!(" {}. {} via crates: {}", i+1, &user.login, crate_list);
         }
     }
 
@@ -116,15 +116,15 @@ fn publishers(mut args: std::env::ArgsOs) {
         println!("\nAll members of the following teams can publish updates for your dependencies:\n");
         let team_to_crate_map = transpose_publishers_map(&publisher_teams);
         let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
-        for (team, crates) in map_for_display.iter() {
+        for (i, (team, crates)) in map_for_display.iter().enumerate() {
             let crate_list = comma_separated_list(&crates);
             if let Some(url) = &team.url {
                 println!(
-                    " - \"{}\" ({}) via crates: {}",
-                    &team.login, url, crate_list
+                    " {}. \"{}\" ({}) via crates: {}",
+                    i+1, &team.login, url, crate_list
                 );
             } else {
-                println!(" - \"{}\" via crates: {}", &team.login, crate_list);
+                println!(" {}. \"{}\" via crates: {}", i+1, &team.login, crate_list);
             }
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
