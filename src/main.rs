@@ -121,8 +121,17 @@ fn crates(mut args: std::env::ArgsOs) {
 
     let mut ordered_owners: Vec<_> = owners.into_iter().collect();
     // Put crates owned by teams first
-    ordered_owners
-        .sort_unstable_by_key(|(name, publishers)| (usize::MAX - publishers.len(), name.clone()));
+    ordered_owners.sort_unstable_by_key(|(name, publishers)| {
+        (
+            publishers
+                .iter()
+                .filter(|p| p.kind == PublisherKind::team)
+                .next()
+                .is_none(), // contains at least one team
+            usize::MAX - publishers.len(),
+            name.clone(),
+        )
+    });
     for (_name, publishers) in ordered_owners.iter_mut() {
         // For each crate put teams first
         publishers.sort_unstable_by_key(|p| (p.kind, p.login.clone()));
