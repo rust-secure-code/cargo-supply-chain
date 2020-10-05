@@ -8,7 +8,7 @@
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use common::*;
-use publishers::PublisherData;
+use publishers::{PublisherData, PublisherKind};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod authors;
@@ -110,27 +110,34 @@ fn crates(mut args: std::env::ArgsOs) {
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
 
-    // TODO: the below might be overly complicated for what it does. Revisit it once it works.
-
-    // Print team-owned crates first, they're the most suspicious due to the opaque nature of teams
-    let mut list_for_display: Vec<(String, Vec<PublisherData>)> = Vec::with_capacity(publisher_teams.len());
-    for (crate_name, publishers) in publisher_teams.iter() {
-        let name = crate_name.clone();
-        let mut owners = publishers.clone();
-        if let Some(publisher_individuals) = publisher_users.get(&name) {
-            owners.extend_from_slice(publisher_individuals);
+    // Merge maps back together. Ewww. Maybe there's a better way to go about this.
+    let mut owners: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    for map in &[publisher_users, publisher_teams] {
+        for (crate_name, publishers) in map.iter() {
+            let entry = owners.entry(crate_name.clone()).or_default();
+            entry.extend_from_slice(publishers);
         }
-        list_for_display.push((name, owners));
     }
-    
-    // Print crates owned by individuals only
-    let mut list_for_display: Vec<(String, Vec<PublisherData>)> = Vec::with_capacity(publisher_users.len());
-    for (crate_name, publishers) in publisher_users.iter() {
-        if ! publisher_teams.contains_key(crate_name) {
-            let name = crate_name.clone();
-            let owners = publishers.clone();
-            list_for_display.push((name, owners));
-        }
+
+    let mut ordered_owners: Vec<_> = owners.into_iter().collect();
+    // Put crates owned by teams first
+    ordered_owners.sort_unstable_by_key(|(name, publishers)| {
+        (usize::MAX - publishers.len(), name.clone())
+    });
+    for (_name, publishers) in ordered_owners.iter_mut() {
+        // For each crate put teams first
+        publishers.sort_unstable_by_key(|p| (p.kind, p.login.clone()));
+    }
+
+    println!("\nDependency crates with the people and teams that can publish them to crates.io:");
+    for (crate_name, publishers) in ordered_owners.iter() {
+        let pretty_publishers: Vec<String> = publishers.iter().map(|p| {
+            match p.kind {
+                PublisherKind::team => format!("team \"{}\"", p.login),
+                PublisherKind::user => format!("{}", p.login),
+            }
+        }).collect();
+        println!(" - {}: {}", crate_name, comma_separated_list(&pretty_publishers));
     }
 }
 
