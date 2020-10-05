@@ -105,7 +105,7 @@ fn crates(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
         bail_unknown_crates_arg(arg)
     }
-    
+
     let dependencies = sourced_dependencies();
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
@@ -121,9 +121,8 @@ fn crates(mut args: std::env::ArgsOs) {
 
     let mut ordered_owners: Vec<_> = owners.into_iter().collect();
     // Put crates owned by teams first
-    ordered_owners.sort_unstable_by_key(|(name, publishers)| {
-        (usize::MAX - publishers.len(), name.clone())
-    });
+    ordered_owners
+        .sort_unstable_by_key(|(name, publishers)| (usize::MAX - publishers.len(), name.clone()));
     for (_name, publishers) in ordered_owners.iter_mut() {
         // For each crate put teams first
         publishers.sort_unstable_by_key(|p| (p.kind, p.login.clone()));
@@ -131,17 +130,27 @@ fn crates(mut args: std::env::ArgsOs) {
 
     println!("\nDependency crates with the people and teams that can publish them to crates.io:");
     for (crate_name, publishers) in ordered_owners.iter() {
-        let pretty_publishers: Vec<String> = publishers.iter().map(|p| {
-            match p.kind {
+        let pretty_publishers: Vec<String> = publishers
+            .iter()
+            .map(|p| match p.kind {
                 PublisherKind::team => format!("team \"{}\"", p.login),
                 PublisherKind::user => format!("{}", p.login),
-            }
-        }).collect();
-        println!(" - {}: {}", crate_name, comma_separated_list(&pretty_publishers));
+            })
+            .collect();
+        println!(
+            " - {}: {}",
+            crate_name,
+            comma_separated_list(&pretty_publishers)
+        );
     }
 }
 
-fn fetch_owners_of_crates(dependencies: &[SourcedPackage]) -> (HashMap<String, Vec<PublisherData>>, HashMap<String, Vec<PublisherData>>) {
+fn fetch_owners_of_crates(
+    dependencies: &[SourcedPackage],
+) -> (
+    HashMap<String, Vec<PublisherData>>,
+    HashMap<String, Vec<PublisherData>>,
+) {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = crates_io::ApiClient::new();
     let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
