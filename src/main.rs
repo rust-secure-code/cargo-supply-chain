@@ -25,6 +25,7 @@ fn main() {
             None => bail_bad_arg(arg),
             Some("authors") => return authors(args),
             Some("publishers") => return publishers(args),
+            Some("crates") => return crates(args),
             Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
             Some(arg) if arg.starts_with('-') => bail_unknown_short_option(arg),
             Some(arg) => bail_unknown_command(arg),
@@ -136,6 +137,14 @@ fn publishers(mut args: std::env::ArgsOs) {
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
     }
+}
+
+fn crates(mut args: std::env::ArgsOs) {
+    if let Some(arg) = args.next() {
+        bail_unknown_crates_arg(arg)
+    }
+
+    todo!();
 }
 
 fn comma_separated_list(list: &[String]) -> String {
@@ -267,6 +276,14 @@ fn bail_unknown_publishers_arg(arg: std::ffi::OsString) {
     std::process::exit(1);
 }
 
+fn bail_unknown_crates_arg(arg: std::ffi::OsString) {
+    eprintln!(
+        "Bad argument to crates command: {}",
+        std::path::Path::new(&arg).display()
+    );
+    std::process::exit(1);
+}
+
 fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
     eprintln!("Bad argument: {}", std::path::Path::new(&arg).display());
     std::process::exit(1);
@@ -283,8 +300,9 @@ fn eprint_help() {
         "Usage: cargo supply-chain COMMAND [OPTIONS...]\n
 
   Commands:
-    authors\t\tList all authors in the dependency graph\n
-    publishers\t\tList all publishers in the dependency graph\n
+    authors\t\tList all authors in the dependency graph (as specified in Cargo.toml)
+    publishers\t\tList all crates.io publishers in the dependency graph
+    crates\t\tList all crates in dependency graph and crates.io publishers for each
 "
     );
 }
