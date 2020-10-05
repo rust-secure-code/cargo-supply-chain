@@ -55,24 +55,29 @@ fn publishers(mut args: std::env::ArgsOs) {
         bail_unknown_publishers_arg(arg)
     }
     let dependencies = sourced_dependencies();
-    let mut crates_io_names: Vec<String> = dependencies
-        .iter()
-        .filter(|p| p.source == PkgSource::CratesIo)
-        .map(|p| p.package.name.clone())
-        .collect();
-    // Collecting into a HashSet is less user-friendly because order varies between runs
-    crates_io_names.sort_unstable();
-    crates_io_names.dedup();
 
-    // TODO: list local crates
+    let local_crate_names = crate_names_from_source(&dependencies, PkgSource::Local);
+    if local_crate_names.len() > 0 {
+        println!("\nThe following crates will be ignored because they come from a local directory:");
+        for crate_name in &local_crate_names {
+            println!(" - {}", crate_name);
+        }
+    }
 
-    // TODO: list crates from git or registiers other than crates.io
+    let foreign_crate_names = crate_names_from_source(&dependencies, PkgSource::Foreign);
+    if local_crate_names.len() > 0 {
+        println!("\nCannot audit the following crates because they are not from crates.io:");
+        for crate_name in &foreign_crate_names {
+            println!(" - {}", crate_name);
+        }
+    }
 
-    eprintln!("Fetching publisher info from crates.io");
-    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+    let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = crates_io::ApiClient::new();
     let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
     let mut publisher_teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    eprintln!("\nFetching publisher info from crates.io");
+    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     for (i, crate_name) in crates_io_names.iter().enumerate() {
         eprintln!(
             "Fetching data for \"{}\" ({}/{})",
@@ -90,19 +95,34 @@ fn publishers(mut args: std::env::ArgsOs) {
         );
     }
 
-    // TODO: list individual publishers
-    
+    if publisher_users.len() > 0 {
+        println!("\nThe following individuals can publish updates for your dependencies:\n");
+        let user_to_crate_map = transpose_publishers_map(&publisher_users);
+        let map_for_display = sort_transposed_map_for_display(user_to_crate_map);
+        for (user, crates) in map_for_display.iter() {
+            // We do not print usernames, since you can embed terminal control sequences in them
+            // and erase yourself from the output that way.
+            // TODO: check if it's possible to smuggle those into github/crates.io usernames
+            let crate_list = comma_separated_list(&crates);
+            println!(" - {} via crates: {}", &user.login, crate_list);
+        }
+    }
+
     println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
     println!("Invitations are also impossible to revoke, and they never expire.");
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
     if publisher_teams.len() > 0 {
-        println!("\nYou also implicitly trust all members of the following teams:\n");
+        println!("\nAll members of the following teams can publish updates for your dependencies:\n");
         let team_to_crate_map = transpose_publishers_map(&publisher_teams);
-        for (team, crates) in team_to_crate_map.iter() {
-            let crate_list = pretty_print_crate_list(&crates);
+        let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
+        for (team, crates) in map_for_display.iter() {
+            let crate_list = comma_separated_list(&crates);
             if let Some(url) = &team.url {
-                println!(" - \"{}\" ({}) via crates: {}", &team.login, url, crate_list);
+                println!(
+                    " - \"{}\" ({}) via crates: {}",
+                    &team.login, url, crate_list
+                );
             } else {
                 println!(" - \"{}\" via crates: {}", &team.login, crate_list);
             }
@@ -111,7 +131,7 @@ fn publishers(mut args: std::env::ArgsOs) {
     }
 }
 
-fn pretty_print_crate_list(list: &[String]) -> String {
+fn comma_separated_list(list: &[String]) -> String {
     let mut result = String::new();
     let mut first_loop = true;
     for crate_name in list {
@@ -122,6 +142,18 @@ fn pretty_print_crate_list(list: &[String]) -> String {
         result.push_str(crate_name.as_str());
     }
     result
+}
+
+fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<String> {
+    let mut filtered_crate_names: Vec<String> = crates
+        .iter()
+        .filter(|p| p.source == source)
+        .map(|p| p.package.name.clone())
+        .collect();
+    // Collecting into a HashSet is less user-friendly because order varies between runs
+    filtered_crate_names.sort_unstable();
+    filtered_crate_names.dedup();
+    filtered_crate_names
 }
 
 /// Turns a crate-to-publishers mapping into publisher-to-crates mapping.
@@ -138,6 +170,16 @@ fn transpose_publishers_map(
                 .push(crate_name.clone());
         }
     }
+    result
+}
+
+/// Returns a Vec sorted so that publishers are sorted by the number of crates they control.
+/// If that number is the same, sort by login.
+fn sort_transposed_map_for_display(input: BTreeMap<PublisherData, Vec<String>>) -> Vec<(PublisherData, Vec<String>)> {
+    let mut result: Vec<_> = input.into_iter().collect();
+    result.sort_unstable_by_key(|(publisher, crates)| {
+        (usize::MAX - crates.len(), publisher.login.clone())
+    });
     result
 }
 
