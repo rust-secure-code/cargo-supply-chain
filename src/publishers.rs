@@ -45,11 +45,11 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
-    user,
     team,
+    user,
 }
 
 pub fn publisher_users(client: &mut ApiClient, crate_name: &str) -> Result<Vec<PublisherData>> {

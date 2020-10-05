@@ -55,48 +55,10 @@ fn publishers(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
         bail_unknown_publishers_arg(arg)
     }
+
     let dependencies = sourced_dependencies();
-
-    let local_crate_names = crate_names_from_source(&dependencies, PkgSource::Local);
-    if local_crate_names.len() > 0 {
-        println!(
-            "\nThe following crates will be ignored because they come from a local directory:"
-        );
-        for crate_name in &local_crate_names {
-            println!(" - {}", crate_name);
-        }
-    }
-
-    let foreign_crate_names = crate_names_from_source(&dependencies, PkgSource::Foreign);
-    if local_crate_names.len() > 0 {
-        println!("\nCannot audit the following crates because they are not from crates.io:");
-        for crate_name in &foreign_crate_names {
-            println!(" - {}", crate_name);
-        }
-    }
-
-    let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
-    let mut client = crates_io::ApiClient::new();
-    let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    let mut publisher_teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    eprintln!("\nFetching publisher info from crates.io");
-    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
-    for (i, crate_name) in crates_io_names.iter().enumerate() {
-        eprintln!(
-            "Fetching data for \"{}\" ({}/{})",
-            crate_name,
-            i,
-            crates_io_names.len()
-        );
-        publisher_users.insert(
-            crate_name.clone(),
-            publishers::publisher_users(&mut client, crate_name).unwrap(),
-        );
-        publisher_teams.insert(
-            crate_name.clone(),
-            publishers::publisher_teams(&mut client, crate_name).unwrap(),
-        );
-    }
+    complain_about_non_crates_io_crates(&dependencies);
+    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
 
     if publisher_users.len() > 0 {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
@@ -143,8 +105,79 @@ fn crates(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
         bail_unknown_crates_arg(arg)
     }
+    
+    let dependencies = sourced_dependencies();
+    complain_about_non_crates_io_crates(&dependencies);
+    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
 
-    todo!();
+    // TODO: the below might be overly complicated for what it does. Revisit it once it works.
+
+    // Print team-owned crates first, they're the most suspicious due to the opaque nature of teams
+    let mut list_for_display: Vec<(String, Vec<PublisherData>)> = Vec::with_capacity(publisher_teams.len());
+    for (crate_name, publishers) in publisher_teams.iter() {
+        let name = crate_name.clone();
+        let mut owners = publishers.clone();
+        if let Some(publisher_individuals) = publisher_users.get(&name) {
+            owners.extend_from_slice(publisher_individuals);
+        }
+        list_for_display.push((name, owners));
+    }
+    
+    // Print crates owned by individuals only
+    let mut list_for_display: Vec<(String, Vec<PublisherData>)> = Vec::with_capacity(publisher_users.len());
+    for (crate_name, publishers) in publisher_users.iter() {
+        if ! publisher_teams.contains_key(crate_name) {
+            let name = crate_name.clone();
+            let owners = publishers.clone();
+            list_for_display.push((name, owners));
+        }
+    }
+}
+
+fn fetch_owners_of_crates(dependencies: &[SourcedPackage]) -> (HashMap<String, Vec<PublisherData>>, HashMap<String, Vec<PublisherData>>) {
+    let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
+    let mut client = crates_io::ApiClient::new();
+    let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    let mut publisher_teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    eprintln!("\nFetching publisher info from crates.io");
+    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+    for (i, crate_name) in crates_io_names.iter().enumerate() {
+        eprintln!(
+            "Fetching data for \"{}\" ({}/{})",
+            crate_name,
+            i,
+            crates_io_names.len()
+        );
+        publisher_users.insert(
+            crate_name.clone(),
+            publishers::publisher_users(&mut client, crate_name).unwrap(),
+        );
+        publisher_teams.insert(
+            crate_name.clone(),
+            publishers::publisher_teams(&mut client, crate_name).unwrap(),
+        );
+    }
+    (publisher_users, publisher_teams)
+}
+
+fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
+    let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
+    if local_crate_names.len() > 0 {
+        println!(
+            "\nThe following crates will be ignored because they come from a local directory:"
+        );
+        for crate_name in &local_crate_names {
+            println!(" - {}", crate_name);
+        }
+    }
+
+    let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
+    if local_crate_names.len() > 0 {
+        println!("\nCannot audit the following crates because they are not from crates.io:");
+        for crate_name in &foreign_crate_names {
+            println!(" - {}", crate_name);
+        }
+    }
 }
 
 fn comma_separated_list(list: &[String]) -> String {
