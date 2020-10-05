@@ -1,4 +1,4 @@
-//! Gather author, contributor, owner data on crates in your dependency graph.
+//! Gather author, contributor, publisher data on crates in your dependency graph.
 //!
 //! There are some use cases:
 //!
@@ -8,13 +8,13 @@
 //! * Identify risks in your dependency graph.
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use common::*;
-use owners::OwnerData;
+use publishers::PublisherData;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod authors;
 mod common;
 mod crates_io;
-mod owners;
+mod publishers;
 
 fn main() {
     let mut args = std::env::args_os();
@@ -24,7 +24,7 @@ fn main() {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("authors") => return authors(args),
-            Some("owners") => return owners(args),
+            Some("publishers") => return publishers(args),
             Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
             Some(arg) if arg.starts_with('-') => bail_unknown_short_option(arg),
             Some(arg) => bail_unknown_command(arg),
@@ -50,9 +50,9 @@ fn authors(mut args: std::env::ArgsOs) {
     }
 }
 
-fn owners(mut args: std::env::ArgsOs) {
+fn publishers(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
-        bail_unknown_owners_arg(arg)
+        bail_unknown_publishers_arg(arg)
     }
     let dependencies = sourced_dependencies();
     let mut crates_io_names: Vec<String> = dependencies
@@ -68,11 +68,11 @@ fn owners(mut args: std::env::ArgsOs) {
 
     // TODO: list crates from git or registiers other than crates.io
 
-    eprintln!("Fetching owner info from crates.io");
+    eprintln!("Fetching publisher info from crates.io");
     eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     let mut client = crates_io::ApiClient::new();
-    let mut owner_users: HashMap<String, Vec<OwnerData>> = HashMap::new();
-    let mut owner_teams: HashMap<String, Vec<OwnerData>> = HashMap::new();
+    let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    let mut publisher_teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
     for (i, crate_name) in crates_io_names.iter().enumerate() {
         eprintln!(
             "Fetching data for \"{}\" ({}/{})",
@@ -80,25 +80,25 @@ fn owners(mut args: std::env::ArgsOs) {
             i,
             crates_io_names.len()
         );
-        owner_users.insert(
+        publisher_users.insert(
             crate_name.clone(),
-            owners::owner_users(&mut client, crate_name).unwrap(),
+            publishers::publisher_users(&mut client, crate_name).unwrap(),
         );
-        owner_teams.insert(
+        publisher_teams.insert(
             crate_name.clone(),
-            owners::owner_teams(&mut client, crate_name).unwrap(),
+            publishers::publisher_teams(&mut client, crate_name).unwrap(),
         );
     }
 
-    // TODO: list individual owners
+    // TODO: list individual publishers
     
-    println!("\nNote: there may be outstanding owner invitations. crates.io provides no way to list them.");
+    println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
     println!("Invitations are also impossible to revoke, and they never expire.");
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
-    if owner_teams.len() > 0 {
+    if publisher_teams.len() > 0 {
         println!("\nYou also implicitly trust all members of the following teams:\n");
-        let team_to_crate_map = transpose_owners_map(&owner_teams);
+        let team_to_crate_map = transpose_publishers_map(&publisher_teams);
         for (team, crates) in team_to_crate_map.iter() {
             let crate_list = pretty_print_crate_list(&crates);
             if let Some(url) = &team.url {
@@ -124,16 +124,16 @@ fn pretty_print_crate_list(list: &[String]) -> String {
     result
 }
 
-/// Turns a crate-to-owners mapping into owner-to-crates mapping.
-/// BTreeMap is used because OwnerData doesn't implement Hash.
-fn transpose_owners_map(
-    input: &HashMap<String, Vec<OwnerData>>,
-) -> BTreeMap<OwnerData, Vec<String>> {
-    let mut result: BTreeMap<OwnerData, Vec<String>> = BTreeMap::new();
-    for (crate_name, owners) in input.iter() {
-        for owner in owners {
+/// Turns a crate-to-publishers mapping into publisher-to-crates mapping.
+/// BTreeMap is used because PublisherData doesn't implement Hash.
+fn transpose_publishers_map(
+    input: &HashMap<String, Vec<PublisherData>>,
+) -> BTreeMap<PublisherData, Vec<String>> {
+    let mut result: BTreeMap<PublisherData, Vec<String>> = BTreeMap::new();
+    for (crate_name, publishers) in input.iter() {
+        for publisher in publishers {
             result
-                .entry(owner.clone())
+                .entry(publisher.clone())
                 .or_default()
                 .push(crate_name.clone());
         }
@@ -208,9 +208,9 @@ fn bail_unknown_author_arg(arg: std::ffi::OsString) {
     std::process::exit(1);
 }
 
-fn bail_unknown_owners_arg(arg: std::ffi::OsString) {
+fn bail_unknown_publishers_arg(arg: std::ffi::OsString) {
     eprintln!(
-        "Bad argument to owners command: {}",
+        "Bad argument to publishers command: {}",
         std::path::Path::new(&arg).display()
     );
     std::process::exit(1);
@@ -233,7 +233,7 @@ fn eprint_help() {
 
   Commands:
     authors\t\tList all authors in the dependency graph\n
-    owners\t\tList all owners in the dependency graph\n
+    publishers\t\tList all publishers in the dependency graph\n
 "
     );
 }

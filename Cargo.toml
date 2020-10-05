@@ -1,7 +1,7 @@
 [package]
 name = "cargo-supply-chain"
 version = "0.0.1"
-description = "Gather author, contributor, owner data on crates in your dependency graph"
+description = "Gather author, contributor, publisher data on crates in your dependency graph"
 repository = "https://github.com/HeroicKatora/cargo-supply-chain"
 authors = ["Andreas Molzer <andreas.molzer@gmx.de>"]
 edition = "2018"

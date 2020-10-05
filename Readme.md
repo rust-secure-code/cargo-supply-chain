@@ -1,6 +1,6 @@
 # cargo-supply-chain
 
-Gather author, contributor, owner data on crates in your dependency graph.
+Gather author, contributor, publisher data on crates in your dependency graph.
 
 There are some use cases:
 
