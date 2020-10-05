@@ -58,7 +58,9 @@ fn publishers(mut args: std::env::ArgsOs) {
 
     let local_crate_names = crate_names_from_source(&dependencies, PkgSource::Local);
     if local_crate_names.len() > 0 {
-        println!("\nThe following crates will be ignored because they come from a local directory:");
+        println!(
+            "\nThe following crates will be ignored because they come from a local directory:"
+        );
         for crate_name in &local_crate_names {
             println!(" - {}", crate_name);
         }
@@ -104,7 +106,7 @@ fn publishers(mut args: std::env::ArgsOs) {
             // and erase yourself from the output that way.
             // TODO: check if it's possible to smuggle those into github/crates.io usernames
             let crate_list = comma_separated_list(&crates);
-            println!(" {}. {} via crates: {}", i+1, &user.login, crate_list);
+            println!(" {}. {} via crates: {}", i + 1, &user.login, crate_list);
         }
     }
 
@@ -113,7 +115,9 @@ fn publishers(mut args: std::env::ArgsOs) {
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
     if publisher_teams.len() > 0 {
-        println!("\nAll members of the following teams can publish updates for your dependencies:\n");
+        println!(
+            "\nAll members of the following teams can publish updates for your dependencies:\n"
+        );
         let team_to_crate_map = transpose_publishers_map(&publisher_teams);
         let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
         for (i, (team, crates)) in map_for_display.iter().enumerate() {
@@ -121,10 +125,13 @@ fn publishers(mut args: std::env::ArgsOs) {
             if let Some(url) = &team.url {
                 println!(
                     " {}. \"{}\" ({}) via crates: {}",
-                    i+1, &team.login, url, crate_list
+                    i + 1,
+                    &team.login,
+                    url,
+                    crate_list
                 );
             } else {
-                println!(" {}. \"{}\" via crates: {}", i+1, &team.login, crate_list);
+                println!(" {}. \"{}\" via crates: {}", i + 1, &team.login, crate_list);
             }
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
@@ -175,7 +182,9 @@ fn transpose_publishers_map(
 
 /// Returns a Vec sorted so that publishers are sorted by the number of crates they control.
 /// If that number is the same, sort by login.
-fn sort_transposed_map_for_display(input: BTreeMap<PublisherData, Vec<String>>) -> Vec<(PublisherData, Vec<String>)> {
+fn sort_transposed_map_for_display(
+    input: BTreeMap<PublisherData, Vec<String>>,
+) -> Vec<(PublisherData, Vec<String>)> {
     let mut result: Vec<_> = input.into_iter().collect();
     result.sort_unstable_by_key(|(publisher, crates)| {
         (usize::MAX - crates.len(), publisher.login.clone())
