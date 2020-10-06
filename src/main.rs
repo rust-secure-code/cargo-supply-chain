@@ -186,21 +186,25 @@ fn fetch_owners_of_crates(
 }
 
 fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
-    let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
-    if local_crate_names.len() > 0 {
-        println!(
-            "\nThe following crates will be ignored because they come from a local directory:"
-        );
-        for crate_name in &local_crate_names {
-            println!(" - {}", crate_name);
+    { // scope bound to avoid accidentally referencing local crates when working with foreign ones
+        let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
+        if local_crate_names.len() > 0 {
+            println!(
+                "\nThe following crates will be ignored because they come from a local directory:"
+            );
+            for crate_name in &local_crate_names {
+                println!(" - {}", crate_name);
+            }
         }
     }
 
-    let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
-    if local_crate_names.len() > 0 {
-        println!("\nCannot audit the following crates because they are not from crates.io:");
-        for crate_name in &foreign_crate_names {
-            println!(" - {}", crate_name);
+    {
+        let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
+        if foreign_crate_names.len() > 0 {
+            println!("\nCannot audit the following crates because they are not from crates.io:");
+            for crate_name in &foreign_crate_names {
+                println!(" - {}", crate_name);
+            }
         }
     }
 }
@@ -275,12 +279,10 @@ fn sourced_dependencies() -> Vec<SourcedPackage> {
     }
 
     // Find the crates.io dependencies..
-    for pkg in meta.packages {
-        for dep in &pkg.dependencies {
-            if let Some(source) = dep.source.as_ref() {
-                if source == "registry+https://github.com/rust-lang/crates.io-index" {
-                    how.insert(pkg.id.clone(), PkgSource::CratesIo);
-                }
+    for pkg in &meta.packages {
+        if let Some(source) = pkg.source.as_ref() {
+            if source.is_crates_io() {
+                how.insert(pkg.id.clone(), PkgSource::CratesIo);
             }
         }
     }
