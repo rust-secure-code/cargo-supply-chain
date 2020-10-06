@@ -1,0 +1,44 @@
+name: Rust CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      rust: stable
+    steps:
+    - uses: actions/checkout@v2
+    - run: rustup default ${{ matrix.rust }}
+    - name: build
+      run: >
+        cargo build --verbose
+    - name: test
+      run: >
+        cargo test --tests
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt
+    - name: Run rustfmt check
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: -- --check
+  doc:
+    runs-on: ubuntu-latest
+    strategy:
+      rust: nightly
+    steps:
+    - uses: actions/checkout@v2
+    - run: rustup default ${{ matrix.rust }}
+    - name: doc 
+      run: >
+        cargo doc --no-deps --document-private-items --all-features
