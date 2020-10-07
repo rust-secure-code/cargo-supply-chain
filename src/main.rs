@@ -41,11 +41,15 @@ fn main() {
 }
 
 fn authors(mut args: std::env::ArgsOs) {
-    if let Some(arg) = args.next() {
-        bail_unknown_author_arg(arg)
+    while let Some(arg) = args.next() {
+        match arg.to_str() {
+            None => bail_bad_arg(arg),
+            Some("--") => break, // we pass args after this to cargo-metadata
+            _ => bail_unknown_authors_arg(arg),
+        }
     }
 
-    let dependencies = sourced_dependencies();
+    let dependencies = sourced_dependencies(args);
 
     let authors: HashSet<_> = authors::authors_of(&dependencies).collect();
     let mut display_authors: Vec<_> = authors.iter().map(|a| a.to_string()).collect();
@@ -56,11 +60,15 @@ fn authors(mut args: std::env::ArgsOs) {
 }
 
 fn publishers(mut args: std::env::ArgsOs) {
-    if let Some(arg) = args.next() {
-        bail_unknown_publishers_arg(arg)
+    while let Some(arg) = args.next() {
+        match arg.to_str() {
+            None => bail_bad_arg(arg),
+            Some("--") => break, // we pass args after this to cargo-metadata
+            _ => bail_unknown_publishers_arg(arg),
+        }
     }
 
-    let dependencies = sourced_dependencies();
+    let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
 
@@ -106,11 +114,15 @@ fn publishers(mut args: std::env::ArgsOs) {
 }
 
 fn crates(mut args: std::env::ArgsOs) {
-    if let Some(arg) = args.next() {
-        bail_unknown_crates_arg(arg)
+    while let Some(arg) = args.next() {
+        match arg.to_str() {
+            None => bail_bad_arg(arg),
+            Some("--") => break, // we pass args after this to cargo-metadata
+            _ => bail_unknown_crates_arg(arg),
+        }
     }
 
-    let dependencies = sourced_dependencies();
+    let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
 
@@ -268,8 +280,16 @@ fn sort_transposed_map_for_display(
     result
 }
 
-fn sourced_dependencies() -> Vec<SourcedPackage> {
-    let meta = MetadataCommand::new().features(AllFeatures).exec().unwrap();
+fn sourced_dependencies(mut args: std::env::ArgsOs) -> Vec<SourcedPackage> {
+    let mut extra_options: Vec<String> = Vec::new();
+    while let Some(arg) = args.next() {
+        match arg.into_string() {
+            Ok(arg) => extra_options.push(arg),
+            Err(arg) => bail_bad_arg(arg),
+        }
+    }
+
+    let meta = MetadataCommand::new().features(AllFeatures).other_options(extra_options).exec().unwrap();
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
     let what: HashMap<PackageId, Package> = meta
@@ -328,7 +348,7 @@ fn bail_unknown_command(arg: &str) -> ! {
     std::process::exit(1);
 }
 
-fn bail_unknown_author_arg(arg: std::ffi::OsString) {
+fn bail_unknown_authors_arg(arg: std::ffi::OsString) {
     eprintln!(
         "Bad argument to authors command: {}",
         std::path::Path::new(&arg).display()
@@ -365,12 +385,15 @@ fn bail_no_tool() -> ! {
 
 fn eprint_help() {
     eprintln!(
-        "Usage: cargo supply-chain COMMAND [OPTIONS...]
+        "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
 
   Commands:
     authors\t\tList all authors in the dependency graph (as specified in Cargo.toml)
     publishers\t\tList all crates.io publishers in the dependency graph
     crates\t\tList all crates in dependency graph and crates.io publishers for each
+
+  Any arguments after -- will be passed to `cargo metadata`, for example:
+    cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 "
     );
 }
