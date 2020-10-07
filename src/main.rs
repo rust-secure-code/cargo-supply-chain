@@ -153,7 +153,7 @@ fn crates(mut args: std::env::ArgsOs) {
         publishers.sort_unstable_by_key(|p| (p.kind, p.login.clone()));
     }
 
-    println!("\nDependency crates with the people and teams that can publish them to crates.io:");
+    println!("\nDependency crates with the people and teams that can publish them to crates.io:\n");
     for (i, (crate_name, publishers)) in ordered_owners.iter().enumerate() {
         let pretty_publishers: Vec<String> = publishers
             .iter()
@@ -163,7 +163,13 @@ fn crates(mut args: std::env::ArgsOs) {
             })
             .collect();
         let publishers_list = comma_separated_list(&pretty_publishers);
-        println!("{}. {}: {}", i, crate_name, publishers_list);
+        println!("{}. {}: {}", i+1, crate_name, publishers_list);
+    }
+
+    if ordered_owners.len() > 0 {
+        println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
+        println!("Invitations are also impossible to revoke, and they never expire.");
+        println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
     }
 }
 
