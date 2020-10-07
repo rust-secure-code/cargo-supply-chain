@@ -365,7 +365,7 @@ fn bail_no_tool() -> ! {
 
 fn eprint_help() {
     eprintln!(
-        "Usage: cargo supply-chain COMMAND [OPTIONS...]\n
+        "Usage: cargo supply-chain COMMAND [OPTIONS...]
 
   Commands:
     authors\t\tList all authors in the dependency graph (as specified in Cargo.toml)
