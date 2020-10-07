@@ -25,6 +25,7 @@ fn main() {
 
     while let Some(arg) = args.next() {
         match arg.to_str() {
+            Some("supply-chain") => {}, // first arg when run as `cargo supply-chain`
             None => bail_bad_arg(arg),
             Some("authors") => return authors(args),
             Some("publishers") => return publishers(args),
