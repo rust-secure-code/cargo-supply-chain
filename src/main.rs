@@ -154,7 +154,7 @@ fn crates(mut args: std::env::ArgsOs) {
     }
 
     println!("\nDependency crates with the people and teams that can publish them to crates.io:");
-    for (crate_name, publishers) in ordered_owners.iter() {
+    for (i, (crate_name, publishers)) in ordered_owners.iter().enumerate() {
         let pretty_publishers: Vec<String> = publishers
             .iter()
             .map(|p| match p.kind {
@@ -162,11 +162,8 @@ fn crates(mut args: std::env::ArgsOs) {
                 PublisherKind::user => format!("{}", p.login),
             })
             .collect();
-        println!(
-            " - {}: {}",
-            crate_name,
-            comma_separated_list(&pretty_publishers)
-        );
+        let publishers_list = comma_separated_list(&pretty_publishers);
+        println!("{}. {}: {}", i, crate_name, publishers_list);
     }
 }
 
