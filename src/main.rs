@@ -311,16 +311,19 @@ fn sourced_dependencies() -> Vec<SourcedPackage> {
 
 fn bail_unknown_option(arg: &str) -> ! {
     eprintln!("Unknown option: {}", std::path::Path::new(&arg).display());
+    eprint_help();
     std::process::exit(1);
 }
 
 fn bail_unknown_short_option(arg: &str) -> ! {
     eprintln!("Unknown flag: {}", arg);
+    eprint_help();
     std::process::exit(1);
 }
 
 fn bail_unknown_command(arg: &str) -> ! {
     eprintln!("Unknown command: {}", arg);
+    eprint_help();
     std::process::exit(1);
 }
 
