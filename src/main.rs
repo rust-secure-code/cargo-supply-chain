@@ -289,7 +289,11 @@ fn sourced_dependencies(mut args: std::env::ArgsOs) -> Vec<SourcedPackage> {
         }
     }
 
-    let meta = MetadataCommand::new().features(AllFeatures).other_options(extra_options).exec().unwrap();
+    let meta = MetadataCommand::new()
+        .features(AllFeatures)
+        .other_options(extra_options)
+        .exec()
+        .unwrap();
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
     let what: HashMap<PackageId, Package> = meta
