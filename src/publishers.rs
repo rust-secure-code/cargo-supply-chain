@@ -89,7 +89,7 @@ pub fn fetch_owners_of_crates(
     for (i, crate_name) in crates_io_names.iter().enumerate() {
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
-        if let (Some(pub_users), Some(pub_teams)) =  (cached_users, cached_teams) {
+        if let (Some(pub_users), Some(pub_teams)) = (cached_users, cached_teams) {
             eprintln!(
                 "Using cached data for \"{}\" ({}/{})",
                 crate_name,

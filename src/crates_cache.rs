@@ -1,8 +1,8 @@
 use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
-use std::{collections::HashMap, fs, io, path::PathBuf};
-use serde::{Serialize, Deserialize};
 use libflate::gzip;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs, io, path::PathBuf};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -72,15 +72,14 @@ impl CratesCache {
     }
 
     fn cache_dir() -> Option<PathBuf> {
-        let projects = directories::ProjectDirs::from("", "rust-secure-code", "cargo-supply-chain")?;
+        let projects =
+            directories::ProjectDirs::from("", "rust-secure-code", "cargo-supply-chain")?;
         Some(projects.cache_dir().to_owned())
     }
 
     /// Re-download the list from the data dumps.
     pub fn download(&mut self, client: &mut RateLimitedClient) -> io::Result<()> {
-        let cache = self.cache_dir
-            .as_ref()
-            .ok_or(io::ErrorKind::NotFound)?;
+        let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
 
         cache.validate_file_creation()?;
 
@@ -88,7 +87,7 @@ impl CratesCache {
         let reader = client.get(url).call().into_reader();
         let ungzip = gzip::Decoder::new(reader)?;
         let mut archive = tar::Archive::new(ungzip);
-        
+
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
@@ -175,37 +174,50 @@ impl CratesCache {
     }
 
     fn load_crates(&mut self) -> Option<&HashMap<String, Crate>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.crates, Self::CRATES_FS).ok()
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.crates, Self::CRATES_FS)
+            .ok()
     }
 
     fn load_crate_owners(&mut self) -> Option<&HashMap<u64, Vec<CrateOwner>>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.crate_owners, Self::CRATE_OWNERS_FS).ok()
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.crate_owners, Self::CRATE_OWNERS_FS)
+            .ok()
     }
 
     fn load_users(&mut self) -> Option<&HashMap<u64, User>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.users, Self::USERS_FS).ok()
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.users, Self::USERS_FS)
+            .ok()
     }
 
     fn load_teams(&mut self) -> Option<&HashMap<u64, Team>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.teams, Self::TEAMS_FS).ok()
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.teams, Self::TEAMS_FS)
+            .ok()
     }
 
     fn load_versions(&mut self) -> Option<&HashMap<(u64, String), Publisher>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.versions, Self::VERSIONS_FS).ok()
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.versions, Self::VERSIONS_FS)
+            .ok()
     }
 }
 
-fn read_csv_data<T: serde::de::DeserializeOwned>(from: impl io::Read)
-    -> Result<Vec<T>, csv::Error>
-{
+fn read_csv_data<T: serde::de::DeserializeOwned>(
+    from: impl io::Read,
+) -> Result<Vec<T>, csv::Error> {
     let mut reader = csv::ReaderBuilder::new()
         .delimiter(b',')
         .double_quote(true)
         .quoting(true)
         .from_reader(from);
-    reader
-        .deserialize()
-        .collect()
+    reader.deserialize().collect()
 }
 
 impl CacheDir {
@@ -222,8 +234,11 @@ impl CacheDir {
         Ok(())
     }
 
-    fn load_cached<'cache, T>(&self, cache: &'cache mut Option<T>, file: &str)
-        -> io::Result<&'cache T>
+    fn load_cached<'cache, T>(
+        &self,
+        cache: &'cache mut Option<T>,
+        file: &str,
+    ) -> io::Result<&'cache T>
     where
         T: serde::de::DeserializeOwned,
     {
@@ -237,13 +252,13 @@ impl CacheDir {
         }
     }
 
-    fn store_map<T, K>(&self,
+    fn store_map<T, K>(
+        &self,
         cache: &mut Option<HashMap<K, T>>,
         file: &str,
         entries: &[T],
         key_fn: &dyn Fn(&T) -> K,
-    )
-        -> io::Result<()>
+    ) -> io::Result<()>
     where
         T: Serialize + Clone,
         K: Serialize + Eq + std::hash::Hash,
@@ -260,27 +275,25 @@ impl CacheDir {
         Ok(())
     }
 
-    fn store_multi_map<T, K>(&self,
+    fn store_multi_map<T, K>(
+        &self,
         cache: &mut Option<HashMap<K, Vec<T>>>,
         file: &str,
         entries: &[T],
         key_fn: &dyn Fn(&T) -> K,
-    )
-        -> io::Result<()>
+    ) -> io::Result<()>
     where
         T: Serialize + Clone,
         K: Serialize + Eq + std::hash::Hash,
     {
         let mut hashed: HashMap<K, _> = HashMap::new();
-        entries
-            .iter()
-            .for_each(|entry| {
-                let key = key_fn(entry);
-                hashed
-                    .entry(key)
-                    .or_insert_with(Vec::new)
-                    .push(entry.clone())
-            });
+        entries.iter().for_each(|entry| {
+            let key = key_fn(entry);
+            hashed
+                .entry(key)
+                .or_insert_with(Vec::new)
+                .push(entry.clone())
+        });
         *cache = None;
         let value = cache.get_or_insert(hashed);
 
