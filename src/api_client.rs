@@ -1,13 +1,13 @@
 use std::time::{Duration, Instant};
 
-pub struct ApiClient {
+pub struct RateLimitedClient {
     last_request_time: Option<Instant>,
     agent: ureq::Agent,
 }
 
-impl Default for ApiClient {
+impl Default for RateLimitedClient {
     fn default() -> Self {
-        ApiClient {
+        RateLimitedClient {
             last_request_time: None,
             agent: ureq::agent()
                 .set(
@@ -20,9 +20,9 @@ impl Default for ApiClient {
     }
 }
 
-impl ApiClient {
+impl RateLimitedClient {
     pub fn new() -> Self {
-        ApiClient::default()
+        RateLimitedClient::default()
     }
 
     pub fn get(&mut self, url: &str) -> ureq::Request {
