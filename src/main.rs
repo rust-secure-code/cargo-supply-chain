@@ -163,7 +163,7 @@ fn crates(mut args: std::env::ArgsOs) {
             })
             .collect();
         let publishers_list = comma_separated_list(&pretty_publishers);
-        println!("{}. {}: {}", i+1, crate_name, publishers_list);
+        println!("{}. {}: {}", i + 1, crate_name, publishers_list);
     }
 
     if ordered_owners.len() > 0 {
