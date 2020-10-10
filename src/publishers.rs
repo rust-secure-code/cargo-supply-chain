@@ -63,10 +63,3 @@ pub fn publisher_teams(client: &mut ApiClient, crate_name: &str) -> Result<Vec<P
     let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.teams)
 }
-
-pub fn publishers(client: &mut ApiClient, crate_name: &str) -> Result<Vec<PublisherData>> {
-    let mut users = publisher_users(client, crate_name)?;
-    let mut teams = publisher_teams(client, crate_name)?;
-    users.extend(teams.drain(..));
-    Ok(users)
-}
