@@ -45,7 +45,7 @@ fn publishers(mut args: std::env::ArgsOs) {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("--") => break, // we pass args after this to cargo-metadata
-            _ => bail_unknown_publishers_arg(arg),
+            _ => bail_unknown_subcommand_arg("publishers", arg),
         }
     }
 
@@ -99,7 +99,7 @@ fn crates(mut args: std::env::ArgsOs) {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("--") => break, // we pass args after this to cargo-metadata
-            _ => bail_unknown_crates_arg(arg),
+            _ => bail_unknown_subcommand_arg("crates", arg),
         }
     }
 
@@ -279,22 +279,6 @@ fn bail_unknown_short_option(arg: &str) -> ! {
 fn bail_unknown_command(arg: &str) -> ! {
     eprintln!("Unknown command: {}", arg);
     eprint_help();
-    std::process::exit(1);
-}
-
-fn bail_unknown_publishers_arg(arg: std::ffi::OsString) {
-    eprintln!(
-        "Bad argument to publishers command: {}",
-        std::path::Path::new(&arg).display()
-    );
-    std::process::exit(1);
-}
-
-fn bail_unknown_crates_arg(arg: std::ffi::OsString) {
-    eprintln!(
-        "Bad argument to crates command: {}",
-        std::path::Path::new(&arg).display()
-    );
     std::process::exit(1);
 }
 

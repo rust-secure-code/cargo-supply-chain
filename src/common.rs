@@ -71,10 +71,10 @@ pub fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
     std::process::exit(1);
 }
 
-// TODO: unify
-pub fn bail_unknown_authors_arg(arg: std::ffi::OsString) {
+pub fn bail_unknown_subcommand_arg(subcommand: &str, arg: std::ffi::OsString) {
     eprintln!(
-        "Bad argument to authors command: {}",
+        "Bad argument to {} command: {}",
+        subcommand,
         std::path::Path::new(&arg).display()
     );
     std::process::exit(1);

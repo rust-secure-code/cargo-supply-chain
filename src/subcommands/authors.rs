@@ -7,7 +7,7 @@ pub fn authors(mut args: std::env::ArgsOs) {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("--") => break, // we pass args after this to cargo-metadata
-            _ => bail_unknown_authors_arg(arg),
+            _ => bail_unknown_subcommand_arg("authors", arg),
         }
     }
 
