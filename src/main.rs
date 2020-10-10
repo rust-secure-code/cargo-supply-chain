@@ -14,6 +14,7 @@ use common::bail_bad_arg;
 mod api_client;
 mod authors;
 mod common;
+mod crates_cache;
 mod publishers;
 mod subcommands;
 
@@ -28,6 +29,7 @@ fn main() {
             Some("authors") => return subcommands::authors(args),
             Some("publishers") => return subcommands::publishers(args),
             Some("crates") => return subcommands::crates(args),
+            Some("update") => return subcommands::update(args),
             Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
             Some(arg) if arg.starts_with('-') => bail_unknown_short_option(arg),
             Some(arg) => bail_unknown_command(arg),
