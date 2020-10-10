@@ -53,11 +53,11 @@ struct User {
 }
 
 impl CratesCache {
-    const CRATES_FS: &'static str = "crates.csv";
-    const CRATE_OWNERS_FS: &'static str = "crate_owners.csv";
-    const USERS_FS: &'static str = "users.csv";
-    const TEAMS_FS: &'static str = "teams.csv";
-    const VERSIONS_FS: &'static str = "versions.csv";
+    const CRATES_FS: &'static str = "crates.json";
+    const CRATE_OWNERS_FS: &'static str = "crate_owners.json";
+    const USERS_FS: &'static str = "users.json";
+    const TEAMS_FS: &'static str = "teams.json";
+    const VERSIONS_FS: &'static str = "versions.json";
 
     /// Open a crates cache.
     pub fn new() -> Self {
@@ -78,16 +78,11 @@ impl CratesCache {
 
     /// Re-download the list from the data dumps.
     pub fn download(&mut self, client: &mut RateLimitedClient) -> io::Result<()> {
-        if let Some(CacheDir(target_dir)) = &self.cache_dir {
-            if !target_dir.exists() {
-                fs::create_dir_all(target_dir)?;
-            }
+        let cache = self.cache_dir
+            .as_ref()
+            .ok_or(io::ErrorKind::NotFound)?;
 
-            if !target_dir.is_dir() {
-                // Well. We certainly don't want to delete anything.
-                return Err(io::ErrorKind::AlreadyExists.into());
-            }
-        }
+        cache.validate_file_creation()?;
 
         let url = "https://static.crates.io/db-dump.tar.gz";
         let reader = client.get(url).call().into_reader();
@@ -97,13 +92,37 @@ impl CratesCache {
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
-                    todo!()
+                    let owners: Vec<CrateOwner> = read_csv_data(entry)?;
+                    cache.store_multi_map(
+                        &mut self.crate_owners,
+                        Self::CRATE_OWNERS_FS,
+                        owners.as_slice(),
+                        &|owner| owner.crate_id,
+                    )?;
                 } else if entry.path_bytes().ends_with(b"crates.csv") {
-                    todo!()
+                    let crates: Vec<Crate> = read_csv_data(entry)?;
+                    cache.store_map(
+                        &mut self.crates,
+                        Self::CRATES_FS,
+                        crates.as_slice(),
+                        &|crate_| crate_.name.clone(),
+                    )?;
                 } else if entry.path_bytes().ends_with(b"users.csv") {
-                    todo!()
-                } else if entry.path_bytes().ends_with(b"versions.csv") {
-                    todo!()
+                    let users: Vec<User> = read_csv_data(entry)?;
+                    cache.store_map(
+                        &mut self.users,
+                        Self::USERS_FS,
+                        users.as_slice(),
+                        &|user| user.id,
+                    )?;
+                } else if entry.path_bytes().ends_with(b"teams.csv") {
+                    let teams: Vec<Team> = read_csv_data(entry)?;
+                    cache.store_map(
+                        &mut self.teams,
+                        Self::TEAMS_FS,
+                        teams.as_slice(),
+                        &|team| team.id,
+                    )?;
                 }
             }
         }
@@ -156,39 +175,117 @@ impl CratesCache {
     }
 
     fn load_crates(&mut self) -> Option<&HashMap<String, Crate>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.crates, Self::CRATES_FS)
+        self.cache_dir.as_ref()?.load_cached(&mut self.crates, Self::CRATES_FS).ok()
     }
 
     fn load_crate_owners(&mut self) -> Option<&HashMap<u64, Vec<CrateOwner>>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.crate_owners, Self::CRATE_OWNERS_FS)
+        self.cache_dir.as_ref()?.load_cached(&mut self.crate_owners, Self::CRATE_OWNERS_FS).ok()
     }
 
     fn load_users(&mut self) -> Option<&HashMap<u64, User>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.users, Self::USERS_FS)
+        self.cache_dir.as_ref()?.load_cached(&mut self.users, Self::USERS_FS).ok()
     }
 
     fn load_teams(&mut self) -> Option<&HashMap<u64, Team>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.teams, Self::TEAMS_FS)
+        self.cache_dir.as_ref()?.load_cached(&mut self.teams, Self::TEAMS_FS).ok()
     }
 
     fn load_versions(&mut self) -> Option<&HashMap<(u64, String), Publisher>> {
-        self.cache_dir.as_ref()?.load_cached(&mut self.versions, Self::VERSIONS_FS)
+        self.cache_dir.as_ref()?.load_cached(&mut self.versions, Self::VERSIONS_FS).ok()
     }
 }
 
+fn read_csv_data<T: serde::de::DeserializeOwned>(from: impl io::Read)
+    -> Result<Vec<T>, csv::Error>
+{
+    let mut reader = csv::ReaderBuilder::new()
+        .delimiter(b',')
+        .double_quote(true)
+        .quoting(true)
+        .from_reader(from);
+    reader
+        .deserialize()
+        .collect()
+}
+
 impl CacheDir {
+    fn validate_file_creation(&self) -> io::Result<()> {
+        if !self.0.exists() {
+            fs::create_dir_all(&self.0)?;
+        }
+
+        if !self.0.is_dir() {
+            // Well. We certainly don't want to delete anything.
+            return Err(io::ErrorKind::AlreadyExists.into());
+        }
+
+        Ok(())
+    }
+
     fn load_cached<'cache, T>(&self, cache: &'cache mut Option<T>, file: &str)
-        -> Option<&'cache T>
+        -> io::Result<&'cache T>
     where
         T: serde::de::DeserializeOwned,
     {
         match cache {
-            Some(datum) => Some(datum),
+            Some(datum) => Ok(datum),
             None => {
-                let file = fs::File::open(self.0.join(file)).ok()?;
+                let file = fs::File::open(self.0.join(file))?;
                 let crates: T = serde_json::from_reader(file).unwrap();
-                Some(cache.get_or_insert(crates))
+                Ok(cache.get_or_insert(crates))
             }
         }
+    }
+
+    fn store_map<T, K>(&self,
+        cache: &mut Option<HashMap<K, T>>,
+        file: &str,
+        entries: &[T],
+        key_fn: &dyn Fn(&T) -> K,
+    )
+        -> io::Result<()>
+    where
+        T: Serialize + Clone,
+        K: Serialize + Eq + std::hash::Hash,
+    {
+        let hashed: HashMap<K, _> = entries
+            .iter()
+            .map(|entry| (key_fn(entry), entry.clone()))
+            .collect();
+        *cache = None;
+        let value = cache.get_or_insert(hashed);
+
+        let out = fs::File::create(self.0.join(file))?;
+        serde_json::to_writer(out, value)?;
+        Ok(())
+    }
+
+    fn store_multi_map<T, K>(&self,
+        cache: &mut Option<HashMap<K, Vec<T>>>,
+        file: &str,
+        entries: &[T],
+        key_fn: &dyn Fn(&T) -> K,
+    )
+        -> io::Result<()>
+    where
+        T: Serialize + Clone,
+        K: Serialize + Eq + std::hash::Hash,
+    {
+        let mut hashed: HashMap<K, _> = HashMap::new();
+        entries
+            .iter()
+            .for_each(|entry| {
+                let key = key_fn(entry);
+                hashed
+                    .entry(key)
+                    .or_insert_with(Vec::new)
+                    .push(entry.clone())
+            });
+        *cache = None;
+        let value = cache.get_or_insert(hashed);
+
+        let out = fs::File::create(self.0.join(file))?;
+        serde_json::to_writer(out, value)?;
+        Ok(())
     }
 }

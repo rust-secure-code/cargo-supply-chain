@@ -1,4 +1,5 @@
 use crate::api_client::RateLimitedClient;
+use crate::crates_cache::CratesCache;
 use serde::Deserialize;
 use std::{collections::HashMap, io::Result};
 
@@ -80,25 +81,39 @@ pub fn fetch_owners_of_crates(
 ) {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
+    let mut cached = CratesCache::new();
     let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
     let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
     eprintln!("\nFetching publisher info from crates.io");
     eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     for (i, crate_name) in crates_io_names.iter().enumerate() {
-        eprintln!(
-            "Fetching data for \"{}\" ({}/{})",
-            crate_name,
-            i,
-            crates_io_names.len()
-        );
-        users.insert(
-            crate_name.clone(),
-            publisher_users(&mut client, crate_name).unwrap(), //TODO: don't panic
-        );
-        teams.insert(
-            crate_name.clone(),
-            publisher_teams(&mut client, crate_name).unwrap(), //TODO: don't panic
-        );
+        let cached_users = cached.publisher_users(crate_name);
+        let cached_teams = cached.publisher_teams(crate_name);
+        if let (Some(pub_users), Some(pub_teams)) =  (cached_users, cached_teams) {
+            eprintln!(
+                "Using cached data for \"{}\" ({}/{})",
+                crate_name,
+                i,
+                crates_io_names.len()
+            );
+            users.insert(crate_name.clone(), pub_users);
+            teams.insert(crate_name.clone(), pub_teams);
+        } else {
+            eprintln!(
+                "Fetching data for \"{}\" ({}/{})",
+                crate_name,
+                i,
+                crates_io_names.len()
+            );
+            users.insert(
+                crate_name.clone(),
+                publisher_users(&mut client, crate_name).unwrap(), //TODO: don't panic
+            );
+            teams.insert(
+                crate_name.clone(),
+                publisher_teams(&mut client, crate_name).unwrap(), //TODO: don't panic
+            );
+        }
     }
     (users, teams)
 }
