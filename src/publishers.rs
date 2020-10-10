@@ -1,6 +1,8 @@
 use crate::api_client::RateLimitedClient;
 use serde::Deserialize;
-use std::io::Result;
+use std::{collections::HashMap, io::Result};
+
+use crate::common::*;
 
 #[derive(Deserialize)]
 struct UsersResponse {
@@ -68,4 +70,35 @@ pub fn publisher_teams(
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
     let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.teams)
+}
+
+pub fn fetch_owners_of_crates(
+    dependencies: &[SourcedPackage],
+) -> (
+    HashMap<String, Vec<PublisherData>>,
+    HashMap<String, Vec<PublisherData>>,
+) {
+    let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
+    let mut client = RateLimitedClient::new();
+    let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    eprintln!("\nFetching publisher info from crates.io");
+    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+    for (i, crate_name) in crates_io_names.iter().enumerate() {
+        eprintln!(
+            "Fetching data for \"{}\" ({}/{})",
+            crate_name,
+            i,
+            crates_io_names.len()
+        );
+        users.insert(
+            crate_name.clone(),
+            publisher_users(&mut client, crate_name).unwrap(), //TODO: don't panic
+        );
+        teams.insert(
+            crate_name.clone(),
+            publisher_teams(&mut client, crate_name).unwrap(), //TODO: don't panic
+        );
+    }
+    (users, teams)
 }
