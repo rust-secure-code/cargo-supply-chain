@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod authors;
 mod common;
-mod crates_io;
+mod api_client;
 mod publishers;
 
 fn main() {
@@ -180,7 +180,7 @@ fn fetch_owners_of_crates(
     HashMap<String, Vec<PublisherData>>,
 ) {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
-    let mut client = crates_io::RateLimitedClient::new();
+    let mut client = api_client::RateLimitedClient::new();
     let mut publisher_users: HashMap<String, Vec<PublisherData>> = HashMap::new();
     let mut publisher_teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
     eprintln!("\nFetching publisher info from crates.io");

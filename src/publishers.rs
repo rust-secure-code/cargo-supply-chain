@@ -1,4 +1,4 @@
-use crate::crates_io::*;
+use crate::api_client::RateLimitedClient;
 use serde::Deserialize;
 use std::io::Result;
 
