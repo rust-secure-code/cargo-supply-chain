@@ -14,6 +14,7 @@ use common::bail_bad_arg;
 mod api_client;
 mod authors;
 mod common;
+mod crates_cache;
 mod publishers;
 mod subcommands;
 
