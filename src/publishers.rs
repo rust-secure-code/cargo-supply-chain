@@ -52,13 +52,19 @@ pub enum PublisherKind {
     user,
 }
 
-pub fn publisher_users(client: &mut RateLimitedClient, crate_name: &str) -> Result<Vec<PublisherData>> {
+pub fn publisher_users(
+    client: &mut RateLimitedClient,
+    crate_name: &str,
+) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
     let data: UsersResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.users)
 }
 
-pub fn publisher_teams(client: &mut RateLimitedClient, crate_name: &str) -> Result<Vec<PublisherData>> {
+pub fn publisher_teams(
+    client: &mut RateLimitedClient,
+    crate_name: &str,
+) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
     let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
     Ok(data.teams)

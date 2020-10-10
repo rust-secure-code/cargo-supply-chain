@@ -9,15 +9,15 @@
 
 #![forbid(unsafe_code)]
 
-use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use common::*;
 use publishers::{PublisherData, PublisherKind};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
+mod api_client;
 mod authors;
 mod common;
-mod api_client;
 mod publishers;
+mod subcommands;
 
 fn main() {
     let mut args = std::env::args_os();
@@ -27,7 +27,7 @@ fn main() {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("supply-chain") => (), // first arg when run as `cargo supply-chain`
-            Some("authors") => return authors(args),
+            Some("authors") => return subcommands::authors::authors(args),
             Some("publishers") => return publishers(args),
             Some("crates") => return crates(args),
             Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
@@ -38,25 +38,6 @@ fn main() {
 
     // No tool selected.
     bail_no_tool();
-}
-
-fn authors(mut args: std::env::ArgsOs) {
-    while let Some(arg) = args.next() {
-        match arg.to_str() {
-            None => bail_bad_arg(arg),
-            Some("--") => break, // we pass args after this to cargo-metadata
-            _ => bail_unknown_authors_arg(arg),
-        }
-    }
-
-    let dependencies = sourced_dependencies(args);
-
-    let authors: HashSet<_> = authors::authors_of(&dependencies).collect();
-    let mut display_authors: Vec<_> = authors.iter().map(|a| a.to_string()).collect();
-    display_authors.sort_unstable();
-    for a in display_authors {
-        println!("{}", a);
-    }
 }
 
 fn publishers(mut args: std::env::ArgsOs) {
@@ -283,60 +264,6 @@ fn sort_transposed_map_for_display(
     result
 }
 
-fn sourced_dependencies(mut args: std::env::ArgsOs) -> Vec<SourcedPackage> {
-    let mut extra_options: Vec<String> = Vec::new();
-    while let Some(arg) = args.next() {
-        match arg.into_string() {
-            Ok(arg) => extra_options.push(arg),
-            Err(arg) => bail_bad_arg(arg),
-        }
-    }
-
-    let meta = MetadataCommand::new()
-        .features(AllFeatures)
-        .other_options(extra_options)
-        .exec()
-        .unwrap();
-
-    let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
-    let what: HashMap<PackageId, Package> = meta
-        .packages
-        .iter()
-        .map(|package| (package.id.clone(), package.clone()))
-        .collect();
-
-    for pkg in &meta.packages {
-        // Suppose every package is foreign, until proven otherwise..
-        how.insert(pkg.id.clone(), PkgSource::Foreign);
-    }
-
-    // Find the crates.io dependencies..
-    for pkg in &meta.packages {
-        if let Some(source) = pkg.source.as_ref() {
-            if source.is_crates_io() {
-                how.insert(pkg.id.clone(), PkgSource::CratesIo);
-            }
-        }
-    }
-
-    for pkg in meta.workspace_members {
-        *how.get_mut(&pkg).unwrap() = PkgSource::Local;
-    }
-
-    let dependencies: Vec<_> = how
-        .iter()
-        .map(|(id, kind)| {
-            let dep = what.get(id).cloned().unwrap();
-            SourcedPackage {
-                source: kind.clone(),
-                package: dep,
-            }
-        })
-        .collect();
-
-    dependencies
-}
-
 fn bail_unknown_option(arg: &str) -> ! {
     eprintln!("Unknown option: {}", std::path::Path::new(&arg).display());
     eprint_help();
@@ -355,14 +282,6 @@ fn bail_unknown_command(arg: &str) -> ! {
     std::process::exit(1);
 }
 
-fn bail_unknown_authors_arg(arg: std::ffi::OsString) {
-    eprintln!(
-        "Bad argument to authors command: {}",
-        std::path::Path::new(&arg).display()
-    );
-    std::process::exit(1);
-}
-
 fn bail_unknown_publishers_arg(arg: std::ffi::OsString) {
     eprintln!(
         "Bad argument to publishers command: {}",
@@ -376,11 +295,6 @@ fn bail_unknown_crates_arg(arg: std::ffi::OsString) {
         "Bad argument to crates command: {}",
         std::path::Path::new(&arg).display()
     );
-    std::process::exit(1);
-}
-
-fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
-    eprintln!("Bad argument: {}", std::path::Path::new(&arg).display());
     std::process::exit(1);
 }
 
