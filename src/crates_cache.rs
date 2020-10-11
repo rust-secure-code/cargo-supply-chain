@@ -1,6 +1,6 @@
 use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
-use libflate::gzip;
+use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, io, path::PathBuf};
 
@@ -85,7 +85,7 @@ impl CratesCache {
 
         let url = "https://static.crates.io/db-dump.tar.gz";
         let reader = client.get(url).call().into_reader();
-        let ungzip = gzip::Decoder::new(reader)?;
+        let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
         for file in archive.entries()? {
