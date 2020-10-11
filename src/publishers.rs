@@ -1,7 +1,7 @@
 use crate::api_client::RateLimitedClient;
-use crate::crates_cache::CratesCache;
+use crate::crates_cache::{CacheState, CratesCache};
 use serde::Deserialize;
-use std::{collections::HashMap, io::Result};
+use std::{collections::HashMap, io::Result, time::Duration};
 
 use crate::common::*;
 
@@ -82,6 +82,17 @@ pub fn fetch_owners_of_crates(
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
+    match cached.expire(Duration::from_secs(24 * 3600)) {
+        CacheState::Fresh => {}
+        CacheState::Expired => {
+            eprintln!("Ignoring expired cache, older than a day.");
+            eprintln!("  Run `cargo supply-chain update` to update it.");
+        }
+        CacheState::Unknown => {
+            eprintln!("The `crates.io` cache was not found or it is invalid.");
+            eprintln!("  Run `cargo supply-chain update` to generate it.");
+        }
+    }
     let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
     let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
     eprintln!("\nFetching publisher info from crates.io");
