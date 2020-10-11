@@ -6,6 +6,7 @@ use std::{collections::HashMap, fs, io, path::PathBuf};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
+    metadata: Option<Metadata>,
     crates: Option<HashMap<String, Crate>>,
     crate_owners: Option<HashMap<u64, Vec<CrateOwner>>>,
     users: Option<HashMap<u64, User>>,
@@ -13,7 +14,19 @@ pub struct CratesCache {
     versions: Option<HashMap<(u64, String), Publisher>>,
 }
 
+pub enum CacheState {
+    Fresh,
+    Expired,
+    Unknown,
+}
+
 struct CacheDir(PathBuf);
+
+#[derive(Clone, Deserialize, Serialize)]
+struct Metadata {
+    #[serde(with = "humantime_serde")]
+    timestamp: std::time::SystemTime,
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 struct Crate {
@@ -53,6 +66,7 @@ struct User {
 }
 
 impl CratesCache {
+    const METADATA_FS: &'static str = "metadata.json";
     const CRATES_FS: &'static str = "crates.json";
     const CRATE_OWNERS_FS: &'static str = "crate_owners.json";
     const USERS_FS: &'static str = "users.json";
@@ -63,6 +77,7 @@ impl CratesCache {
     pub fn new() -> Self {
         CratesCache {
             cache_dir: Self::cache_dir().map(CacheDir),
+            metadata: None,
             crates: None,
             crate_owners: None,
             users: None,
@@ -122,11 +137,37 @@ impl CratesCache {
                         teams.as_slice(),
                         &|team| team.id,
                     )?;
+                } else if entry.path_bytes().ends_with(b"metadata.json") {
+                    let meta: Metadata = serde_json::from_reader(entry)?;
+                    cache.store(&mut self.metadata, Self::METADATA_FS, meta)?;
                 }
             }
         }
 
         Ok(())
+    }
+
+    pub fn expire(&mut self, max_age: std::time::Duration) -> CacheState {
+        let validate: Option<bool> = (|| {
+            let meta = self.load_metadata()?;
+            let last_fresh = meta.timestamp.checked_add(max_age)?;
+            let now = std::time::SystemTime::now();
+            Some(now < last_fresh)
+        })();
+
+        match validate {
+            // Still fresh.
+            Some(true) => CacheState::Fresh,
+            // There was no valid meta data. Consider expired for safety.
+            None => {
+                self.cache_dir = None;
+                CacheState::Unknown
+            }
+            Some(false) => {
+                self.cache_dir = None;
+                CacheState::Expired
+            }
+        }
     }
 
     pub fn publisher_users(&mut self, crate_name: &str) -> Option<Vec<PublisherData>> {
@@ -171,6 +212,13 @@ impl CratesCache {
             })
             .collect();
         Some(publisher)
+    }
+
+    fn load_metadata(&mut self) -> Option<&Metadata> {
+        self.cache_dir
+            .as_ref()?
+            .load_cached(&mut self.metadata, Self::METADATA_FS)
+            .ok()
     }
 
     fn load_crates(&mut self) -> Option<&HashMap<String, Crate>> {
@@ -252,6 +300,18 @@ impl CacheDir {
         }
     }
 
+    fn store<T>(&self, cache: &mut Option<T>, file: &str, value: T) -> io::Result<()>
+    where
+        T: Serialize,
+    {
+        *cache = None;
+        let value = cache.get_or_insert(value);
+
+        let out = fs::File::create(self.0.join(file))?;
+        serde_json::to_writer(out, value)?;
+        Ok(())
+    }
+
     fn store_map<T, K>(
         &self,
         cache: &mut Option<HashMap<K, T>>,
@@ -267,12 +327,7 @@ impl CacheDir {
             .iter()
             .map(|entry| (key_fn(entry), entry.clone()))
             .collect();
-        *cache = None;
-        let value = cache.get_or_insert(hashed);
-
-        let out = fs::File::create(self.0.join(file))?;
-        serde_json::to_writer(out, value)?;
-        Ok(())
+        self.store(cache, file, hashed)
     }
 
     fn store_multi_map<T, K>(
@@ -294,11 +349,6 @@ impl CacheDir {
                 .or_insert_with(Vec::new)
                 .push(entry.clone())
         });
-        *cache = None;
-        let value = cache.get_or_insert(hashed);
-
-        let out = fs::File::create(self.0.join(file))?;
-        serde_json::to_writer(out, value)?;
-        Ok(())
+        self.store(cache, file, hashed)
     }
 }
