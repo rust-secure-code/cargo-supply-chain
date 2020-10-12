@@ -6,7 +6,7 @@ use std::{collections::HashMap, fs, io, path::PathBuf};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
-    metadata: Option<Metadata>,
+    metadata: Option<MetadataStored>,
     crates: Option<HashMap<String, Crate>>,
     crate_owners: Option<HashMap<u64, Vec<CrateOwner>>>,
     users: Option<HashMap<u64, User>>,
@@ -20,12 +20,29 @@ pub enum CacheState {
     Unknown,
 }
 
+pub enum DownloadState {
+    /// The tag still matched and resource was not stale.
+    Fresh,
+    /// There was a newer resource.
+    Expired,
+    /// We forced the download of an update.
+    Stale,
+}
+
 struct CacheDir(PathBuf);
 
 #[derive(Clone, Deserialize, Serialize)]
 struct Metadata {
     #[serde(with = "humantime_serde")]
     timestamp: std::time::SystemTime,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+struct MetadataStored {
+    #[serde(with = "humantime_serde")]
+    timestamp: std::time::SystemTime,
+    #[serde(default)]
+    etag: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -73,6 +90,8 @@ impl CratesCache {
     const TEAMS_FS: &'static str = "teams.json";
     const VERSIONS_FS: &'static str = "versions.json";
 
+    const DUMP_URL: &'static str = "https://static.crates.io/db-dump.tar.gz";
+
     /// Open a crates cache.
     pub fn new() -> Self {
         CratesCache {
@@ -93,16 +112,42 @@ impl CratesCache {
     }
 
     /// Re-download the list from the data dumps.
-    pub fn download(&mut self, client: &mut RateLimitedClient) -> io::Result<()> {
+    pub fn download(
+        &mut self,
+        client: &mut RateLimitedClient,
+        max_age: std::time::Duration,
+    ) -> io::Result<DownloadState> {
         let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
-
         cache.validate_file_creation()?;
 
-        let url = "https://static.crates.io/db-dump.tar.gz";
-        let reader = client.get(url).call().into_reader();
+        let remembered_etag;
+        let response = {
+            let mut request = client.get(Self::DUMP_URL);
+            if let Some(meta) = self.load_metadata() {
+                remembered_etag = meta.etag.clone();
+                // See if we can consider the resource not-yet-stale.
+                if let Some(true) = meta.validate(max_age) {
+                    if let Some(etag) = meta.etag.as_ref() {
+                        request.set("if-none-match", &etag);
+                    }
+                }
+            } else {
+                remembered_etag = None;
+            }
+            request.call()
+        };
+
+        // Not modified.
+        if response.status() == 304 {
+            return Ok(DownloadState::Fresh);
+        }
+
+        let etag = response.header("etag").map(String::from);
+        let reader = response.into_reader();
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
+        let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
@@ -139,23 +184,29 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
                     let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache.store(&mut self.metadata, Self::METADATA_FS, meta)?;
+                    cache.store(
+                        &mut self.metadata,
+                        Self::METADATA_FS,
+                        MetadataStored {
+                            timestamp: meta.timestamp,
+                            etag: etag.clone(),
+                        },
+                    )?;
                 }
             }
         }
 
-        Ok(())
+        // If we get here, we had no etag or the etag mismatched or we forced a download due to
+        // stale data. Catch the last as it means the crates.io daily dumps were not updated.
+        if remembered_etag == etag {
+            Ok(DownloadState::Stale)
+        } else {
+            Ok(DownloadState::Expired)
+        }
     }
 
     pub fn expire(&mut self, max_age: std::time::Duration) -> CacheState {
-        let validate: Option<bool> = (|| {
-            let meta = self.load_metadata()?;
-            let last_fresh = meta.timestamp.checked_add(max_age)?;
-            let now = std::time::SystemTime::now();
-            Some(now < last_fresh)
-        })();
-
-        match validate {
+        match self.validate(max_age) {
             // Still fresh.
             Some(true) => CacheState::Fresh,
             // There was no valid meta data. Consider expired for safety.
@@ -214,7 +265,12 @@ impl CratesCache {
         Some(publisher)
     }
 
-    fn load_metadata(&mut self) -> Option<&Metadata> {
+    fn validate(&mut self, max_age: std::time::Duration) -> Option<bool> {
+        let meta = self.load_metadata()?;
+        meta.validate(max_age)
+    }
+
+    fn load_metadata(&mut self) -> Option<&MetadataStored> {
         self.cache_dir
             .as_ref()?
             .load_cached(&mut self.metadata, Self::METADATA_FS)
@@ -266,6 +322,14 @@ fn read_csv_data<T: serde::de::DeserializeOwned>(
         .quoting(true)
         .from_reader(from);
     reader.deserialize().collect()
+}
+
+impl MetadataStored {
+    fn validate(&self, max_age: std::time::Duration) -> Option<bool> {
+        let last_fresh = self.timestamp.checked_add(max_age)?;
+        let now = std::time::SystemTime::now();
+        Some(now < last_fresh)
+    }
 }
 
 impl CacheDir {
