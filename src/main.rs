@@ -72,6 +72,7 @@ fn eprint_help() {
     authors\t\tList all authors in the dependency graph (as specified in Cargo.toml)
     publishers\t\tList all crates.io publishers in the dependency graph
     crates\t\tList all crates in dependency graph and crates.io publishers for each
+    update\t\tDownload the latest daily dump from crates.io to speed up other commands
 
   Any arguments after -- will be passed to `cargo metadata`, for example:
     cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu

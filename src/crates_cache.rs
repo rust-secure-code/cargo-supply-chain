@@ -112,7 +112,11 @@ impl CratesCache {
     }
 
     /// Re-download the list from the data dumps.
-    pub fn download(&mut self, client: &mut RateLimitedClient, max_age: std::time::Duration) -> io::Result<DownloadState> {
+    pub fn download(
+        &mut self,
+        client: &mut RateLimitedClient,
+        max_age: std::time::Duration,
+    ) -> io::Result<DownloadState> {
         let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
         cache.validate_file_creation()?;
 
@@ -135,7 +139,7 @@ impl CratesCache {
 
         // Not modified.
         if response.status() == 304 {
-            return Ok(DownloadState::Fresh)
+            return Ok(DownloadState::Fresh);
         }
 
         let etag = response.header("etag").map(String::from);
@@ -180,10 +184,14 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
                     let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache.store(&mut self.metadata, Self::METADATA_FS, MetadataStored {
-                        timestamp: meta.timestamp,
-                        etag: etag.clone(),
-                    })?;
+                    cache.store(
+                        &mut self.metadata,
+                        Self::METADATA_FS,
+                        MetadataStored {
+                            timestamp: meta.timestamp,
+                            etag: etag.clone(),
+                        },
+                    )?;
                 }
             }
         }
