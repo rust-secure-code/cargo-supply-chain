@@ -1,6 +1,6 @@
 use crate::api_client::RateLimitedClient;
 use crate::common::*;
-use crate::crates_cache::CratesCache;
+use crate::crates_cache::{CratesCache, DownloadState};
 
 pub fn update(mut args: std::env::ArgsOs) {
     if let Some(arg) = args.next() {
@@ -9,5 +9,8 @@ pub fn update(mut args: std::env::ArgsOs) {
 
     let mut cache = CratesCache::new();
     let mut client = RateLimitedClient::new();
-    cache.download(&mut client).unwrap();
+    match cache.download(&mut client).unwrap() {
+        DownloadState::Fresh => println!("No updates found"),
+        DownloadState::Expired => println!("Successfully updated to the newest daily data dump."),
+    }
 }
