@@ -75,6 +75,7 @@ pub fn publisher_teams(
 
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
+    max_age: Duration,
 ) -> (
     HashMap<String, Vec<PublisherData>>,
     HashMap<String, Vec<PublisherData>>,
@@ -82,10 +83,10 @@ pub fn fetch_owners_of_crates(
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
-    match cached.expire(Duration::from_secs(24 * 3600)) {
+    match cached.expire(max_age) {
         CacheState::Fresh => {}
         CacheState::Expired => {
-            eprintln!("Ignoring expired cache, older than a day.");
+            eprintln!("Ignoring expired cache, older than {}.", humantime::format_duration(max_age));
             eprintln!("  Run `cargo supply-chain update` to update it.");
         }
         CacheState::Unknown => {

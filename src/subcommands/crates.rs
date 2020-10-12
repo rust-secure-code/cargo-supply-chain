@@ -4,9 +4,16 @@ use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherData, PublisherKind};
 
 pub fn crates(mut args: std::env::ArgsOs) {
+    let mut max_age = std::time::Duration::from_secs(48 * 3600);
+
     while let Some(arg) = args.next() {
         match arg.to_str() {
             None => bail_bad_arg(arg),
+            Some("--cache-max-age") => {
+                max_age = get_argument(arg, &mut args, |age| {
+                    humantime::parse_duration(&age)
+                });
+            }
             Some("--") => break, // we pass args after this to cargo-metadata
             _ => bail_unknown_subcommand_arg("crates", arg),
         }
@@ -14,7 +21,7 @@ pub fn crates(mut args: std::env::ArgsOs) {
 
     let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
-    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies);
+    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age);
 
     // Merge maps back together. Ewww. Maybe there's a better way to go about this.
     let mut owners: HashMap<String, Vec<PublisherData>> = HashMap::new();

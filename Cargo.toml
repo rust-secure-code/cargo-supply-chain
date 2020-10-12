@@ -13,6 +13,7 @@ cargo_metadata = "0.11.3"
 csv = "1.1"
 directories = "3"
 flate2 = "1"
+humantime = "2"
 humantime-serde = "1"
 ureq = {version = "1.5.0", features = ["json"]}
 serde = { version = "1.0", features = ["derive"] }

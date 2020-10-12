@@ -116,8 +116,36 @@ pub fn comma_separated_list(list: &[String]) -> String {
     result
 }
 
+pub fn get_argument<T, E: std::fmt::Display>(
+    what: std::ffi::OsString,
+    args: &mut std::env::ArgsOs,
+    parser: impl FnOnce(&str) -> Result<T, E>,
+) -> T {
+    let arg = match args.next() {
+        Some(arg) => arg,
+        None => bail_missing_argument(what),
+    };
+    let arg_str = match arg.to_str() {
+        Some(arg) => arg,
+        None => bail_invalid_argument(what, std::path::Path::new(&arg).display()),
+    };
+    parser(arg_str).unwrap_or_else(|err| {
+        bail_invalid_argument(what, err)
+    })
+}
+
 pub fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
     eprintln!("Bad argument: {}", std::path::Path::new(&arg).display());
+    std::process::exit(1);
+}
+
+pub fn bail_missing_argument(arg: std::ffi::OsString) -> ! {
+    eprintln!("Missing argument to {}", std::path::Path::new(&arg).display());
+    std::process::exit(1);
+}
+
+pub fn bail_invalid_argument(arg: std::ffi::OsString, err: impl std::fmt::Display) -> ! {
+    eprintln!("Invalid argument to {}: {}", std::path::Path::new(&arg).display(), err);
     std::process::exit(1);
 }
 
