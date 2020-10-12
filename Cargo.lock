@@ -79,6 +79,7 @@ dependencies = [
  "csv",
  "directories",
  "flate2",
+ "humantime",
  "humantime-serde",
  "serde",
  "serde_json",
