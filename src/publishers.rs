@@ -75,6 +75,7 @@ pub fn publisher_teams(
 
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
+    max_age: Duration,
 ) -> (
     HashMap<String, Vec<PublisherData>>,
     HashMap<String, Vec<PublisherData>>,
@@ -82,7 +83,6 @@ pub fn fetch_owners_of_crates(
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
-    let max_age = Duration::from_secs(48 * 3600);
     match cached.expire(max_age) {
         CacheState::Fresh => {}
         CacheState::Expired => {
