@@ -26,6 +26,7 @@ pub fn update(mut args: std::env::ArgsOs) {
         DownloadState::Stale => {
             println!("Downloaded latest daily data dump.");
             println!("  Warning: it matches the previous version that was considered outdated.");
+            std::process::exit(1);
         }
     }
 }
