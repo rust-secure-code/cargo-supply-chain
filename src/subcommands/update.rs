@@ -9,11 +9,9 @@ pub fn update(mut args: std::env::ArgsOs) {
         match arg.to_str() {
             None => bail_bad_arg(arg),
             Some("--cache-max-age") => {
-                max_age = get_argument(arg, &mut args, |age| {
-                    humantime::parse_duration(&age)
-                });
+                max_age = get_argument(arg, &mut args, |age| humantime::parse_duration(&age));
             }
-            _ => bail_unknown_subcommand_arg("update", arg)
+            _ => bail_unknown_subcommand_arg("update", arg),
         }
     }
 

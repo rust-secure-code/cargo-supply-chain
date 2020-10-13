@@ -129,9 +129,7 @@ pub fn get_argument<T, E: std::fmt::Display>(
         Some(arg) => arg,
         None => bail_invalid_argument(what, std::path::Path::new(&arg).display()),
     };
-    parser(arg_str).unwrap_or_else(|err| {
-        bail_invalid_argument(what, err)
-    })
+    parser(arg_str).unwrap_or_else(|err| bail_invalid_argument(what, err))
 }
 
 pub fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
@@ -140,12 +138,19 @@ pub fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
 }
 
 pub fn bail_missing_argument(arg: std::ffi::OsString) -> ! {
-    eprintln!("Missing argument to {}", std::path::Path::new(&arg).display());
+    eprintln!(
+        "Missing argument to {}",
+        std::path::Path::new(&arg).display()
+    );
     std::process::exit(1);
 }
 
 pub fn bail_invalid_argument(arg: std::ffi::OsString, err: impl std::fmt::Display) -> ! {
-    eprintln!("Invalid argument to {}: {}", std::path::Path::new(&arg).display(), err);
+    eprintln!(
+        "Invalid argument to {}: {}",
+        std::path::Path::new(&arg).display(),
+        err
+    );
     std::process::exit(1);
 }
 

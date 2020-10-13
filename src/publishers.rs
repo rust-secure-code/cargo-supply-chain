@@ -86,7 +86,10 @@ pub fn fetch_owners_of_crates(
     match cached.expire(max_age) {
         CacheState::Fresh => {}
         CacheState::Expired => {
-            eprintln!("Ignoring expired cache, older than {}.", humantime::format_duration(max_age));
+            eprintln!(
+                "Ignoring expired cache, older than {}.",
+                humantime::format_duration(max_age)
+            );
             eprintln!("  Run `cargo supply-chain update` to update it.");
         }
         CacheState::Unknown => {
