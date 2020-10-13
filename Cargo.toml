@@ -15,7 +15,7 @@ directories = "3"
 flate2 = "1"
 humantime = "2"
 humantime-serde = "1"
-ureq = {version = "1.5.0", features = ["json"]}
+ureq = {version = "1.5.0", default-features=false, features = ["tls", "json"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tar = "0.4.30"
