@@ -36,8 +36,8 @@ fn main() {
         }
     }
 
-    // No tool selected.
-    bail_no_tool();
+    // No command selected.
+    bail_no_command();
 }
 
 fn bail_unknown_option(arg: &str) -> ! {
@@ -58,8 +58,8 @@ fn bail_unknown_command(arg: &str) -> ! {
     std::process::exit(1);
 }
 
-fn bail_no_tool() -> ! {
-    eprintln!("No tool selected.");
+fn bail_no_command() -> ! {
+    eprintln!("No command selected.");
     eprint_help();
     std::process::exit(1);
 }
