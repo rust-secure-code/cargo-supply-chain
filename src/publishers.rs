@@ -83,24 +83,31 @@ pub fn fetch_owners_of_crates(
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
-    match cached.expire(max_age) {
-        CacheState::Fresh => {}
+    let using_cache = match cached.expire(max_age) {
+        CacheState::Fresh => true,
         CacheState::Expired => {
             eprintln!(
                 "Ignoring expired cache, older than {}.",
                 humantime::format_duration(max_age)
             );
             eprintln!("  Run `cargo supply-chain update` to update it.");
+            false
         }
         CacheState::Unknown => {
             eprintln!("The `crates.io` cache was not found or it is invalid.");
             eprintln!("  Run `cargo supply-chain update` to generate it.");
+            false
         }
-    }
+    };
     let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
     let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    eprintln!("\nFetching publisher info from crates.io");
-    eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+
+    if using_cache {
+        eprintln!("\nLoading cache...");
+    } else {
+        eprintln!("\nFetching publisher info from crates.io");
+        eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
+    }
     for (i, crate_name) in crates_io_names.iter().enumerate() {
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
