@@ -1,4 +1,4 @@
-use crate::api_client::RateLimitedClient;
+use crate::{api_client::RateLimitedClient, crates_cache::AgeError};
 use crate::crates_cache::{CacheState, CratesCache};
 use serde::Deserialize;
 use std::{collections::HashMap, io::Result, time::Duration};
@@ -87,14 +87,14 @@ pub fn fetch_owners_of_crates(
         CacheState::Fresh => true,
         CacheState::Expired => {
             eprintln!(
-                "Ignoring expired cache, older than {}.",
+                "\nIgnoring expired cache, older than {}.",
                 humantime::format_duration(max_age)
             );
             eprintln!("  Run `cargo supply-chain update` to update it.");
             false
         }
         CacheState::Unknown => {
-            eprintln!("The `crates.io` cache was not found or it is invalid.");
+            eprintln!("\nThe `crates.io` cache was not found or it is invalid.");
             eprintln!("  Run `cargo supply-chain update` to generate it.");
             false
         }
@@ -103,7 +103,10 @@ pub fn fetch_owners_of_crates(
     let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
 
     if using_cache {
-        eprintln!("\nLoading cache...");
+        match cached.age() {
+            Ok(age) => eprintln!("\nUsing cached data. Cache age: {}", humantime::format_duration(age)),
+            Err(_) => unreachable!(),
+        }
     } else {
         eprintln!("\nFetching publisher info from crates.io");
         eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
@@ -112,12 +115,14 @@ pub fn fetch_owners_of_crates(
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
         if let (Some(pub_users), Some(pub_teams)) = (cached_users, cached_teams) {
-            eprintln!(
-                "Using cached data for \"{}\" ({}/{})",
-                crate_name,
-                i,
-                crates_io_names.len()
-            );
+            // Progress output for downloading crates was meant as a progress bar.
+            // We don't need it for cache, since it's fast anyway.
+            // eprintln!(
+            //     "Using cached data for \"{}\" ({}/{})",
+            //     crate_name,
+            //     i,
+            //     crates_io_names.len()
+            // );
             users.insert(crate_name.clone(), pub_users);
             teams.insert(crate_name.clone(), pub_teams);
         } else {

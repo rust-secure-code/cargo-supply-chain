@@ -2,7 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs, io, path::PathBuf};
+use std::{collections::HashMap, fs, io, path::PathBuf, time::Duration, time::SystemTimeError};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -27,6 +27,17 @@ pub enum DownloadState {
     Expired,
     /// We forced the download of an update.
     Stale,
+}
+
+pub enum AgeError {
+    InvalidCache,
+    CacheFromTheFuture(SystemTimeError),
+}
+
+impl From<SystemTimeError> for AgeError {
+    fn from(err: SystemTimeError) -> Self {
+        AgeError::CacheFromTheFuture(err)
+    }
 }
 
 struct CacheDir(PathBuf);
@@ -115,7 +126,7 @@ impl CratesCache {
     pub fn download(
         &mut self,
         client: &mut RateLimitedClient,
-        max_age: std::time::Duration,
+        max_age: Duration,
     ) -> io::Result<DownloadState> {
         let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
         cache.validate_file_creation()?;
@@ -205,7 +216,7 @@ impl CratesCache {
         }
     }
 
-    pub fn expire(&mut self, max_age: std::time::Duration) -> CacheState {
+    pub fn expire(&mut self, max_age: Duration) -> CacheState {
         match self.validate(max_age) {
             // Still fresh.
             Some(true) => CacheState::Fresh,
@@ -218,6 +229,13 @@ impl CratesCache {
                 self.cache_dir = None;
                 CacheState::Expired
             }
+        }
+    }
+
+    pub fn age(&mut self) -> Result<Duration, AgeError> {
+        match self.load_metadata() {
+            Some(meta) => Ok(meta.age()?),
+            None => Err(AgeError::InvalidCache),
         }
     }
 
@@ -265,7 +283,7 @@ impl CratesCache {
         Some(publisher)
     }
 
-    fn validate(&mut self, max_age: std::time::Duration) -> Option<bool> {
+    fn validate(&mut self, max_age: Duration) -> Option<bool> {
         let meta = self.load_metadata()?;
         meta.validate(max_age)
     }
@@ -325,10 +343,15 @@ fn read_csv_data<T: serde::de::DeserializeOwned>(
 }
 
 impl MetadataStored {
-    fn validate(&self, max_age: std::time::Duration) -> Option<bool> {
-        let last_fresh = self.timestamp.checked_add(max_age)?;
-        let now = std::time::SystemTime::now();
-        Some(now < last_fresh)
+    fn validate(&self, max_age: Duration) -> Option<bool> {
+        match self.age() {
+            Ok(duration) => Some(duration < max_age),
+            Err(_) => None,
+        }
+    }
+
+    pub fn age(&self) -> Result<Duration, SystemTimeError> {
+        self.timestamp.elapsed()
     }
 }
 
