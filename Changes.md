@@ -1,3 +1,10 @@
+## v0.0.2 (2020-10-14)
+
+- `crates`: Shows the people or groups with publisher rights for each crate.
+- `publishers`: Is the reverse of `crates`, grouping by publisher instead.
+- `update`: Caches the data dumps from `crates.io` to avoid crawling the web
+  service when lookup up publisher and author information.
+
 ## v0.0.1 (2020-10-02)
 
 Initial release, supports one command:
