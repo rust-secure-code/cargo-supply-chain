@@ -1,6 +1,6 @@
 [package]
 name = "cargo-supply-chain"
-version = "0.0.1"
+version = "0.0.2"
 description = "Gather author, contributor, publisher data on crates in your dependency graph"
 repository = "https://github.com/HeroicKatora/cargo-supply-chain"
 authors = ["Andreas Molzer <andreas.molzer@gmx.de>"]
