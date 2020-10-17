@@ -1,5 +1,5 @@
+use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
-use crate::{api_client::RateLimitedClient, crates_cache::AgeError};
 use serde::Deserialize;
 use std::{collections::HashMap, io::Result, time::Duration};
 
@@ -104,11 +104,11 @@ pub fn fetch_owners_of_crates(
 
     if using_cache {
         match cached.age() {
-            Ok(age) => eprintln!(
+            Some(age) => eprintln!(
                 "\nUsing cached data. Cache age: {}",
                 humantime::format_duration(age)
             ),
-            Err(_) => unreachable!(),
+            None => unreachable!(),
         }
     } else {
         eprintln!("\nFetching publisher info from crates.io");

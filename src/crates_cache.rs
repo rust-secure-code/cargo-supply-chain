@@ -29,17 +29,6 @@ pub enum DownloadState {
     Stale,
 }
 
-pub enum AgeError {
-    InvalidCache,
-    CacheFromTheFuture(SystemTimeError),
-}
-
-impl From<SystemTimeError> for AgeError {
-    fn from(err: SystemTimeError) -> Self {
-        AgeError::CacheFromTheFuture(err)
-    }
-}
-
 struct CacheDir(PathBuf);
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -232,10 +221,10 @@ impl CratesCache {
         }
     }
 
-    pub fn age(&mut self) -> Result<Duration, AgeError> {
+    pub fn age(&mut self) -> Option<Duration> {
         match self.load_metadata() {
-            Some(meta) => Ok(meta.age()?),
-            None => Err(AgeError::InvalidCache),
+            Some(meta) => meta.age().ok(),
+            None => None,
         }
     }
 
