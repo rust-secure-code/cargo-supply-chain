@@ -28,7 +28,7 @@ Any arguments specified after `--` will be passed to `cargo metadata`, for examp
 
 will only include dependencies that are used when compiling for `x86_64-unknown-linux-gnu` and ignore crates that are not used on this platform (e.g. `winapi`, `web-sys`).
 
-See `cargo metadata --help` for more info.
+See `cargo metadata --help` for a list of flags it supports.
 
 ## License
 
