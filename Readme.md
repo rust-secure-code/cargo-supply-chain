@@ -9,13 +9,13 @@ Use cases include:
   might have both a sobering and humbling effect.
 * Identify risks in your dependency graph.
 
-## Getting started
+## Usage
 
 Run `cargo install cargo-supply-chain` to install the tool.
 
 Navigate to your project and run `cargo supply-chain` followed by a subcommand, e.g. `cargo supply-chain publishers`
 
-The supported subcommands are:
+### Subcommands
 
  * `authors` - lists all the authors for all dependencies, as specified in `Cargo.toml` files. Works offline.
  * `publishers` - lists all the people and teams that can publish updates to your dependencies on crates.io.
