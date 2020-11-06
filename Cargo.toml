@@ -2,8 +2,8 @@
 name = "cargo-supply-chain"
 version = "0.0.2"
 description = "Gather author, contributor, publisher data on crates in your dependency graph"
-repository = "https://github.com/HeroicKatora/cargo-supply-chain"
-authors = ["Andreas Molzer <andreas.molzer@gmx.de>"]
+repository = "https://github.com/rust-secure-code/cargo-supply-chain"
+authors = ["Andreas Molzer <andreas.molzer@gmx.de>", "Sergey \"Shnatsel\" Davidoff <shnatsel@gmail.com>"]
 edition = "2018"
 license = "Apache-2.0 OR MIT OR Zlib"
 categories = ["development-tools::cargo-plugins", "command-line-utilities"]
