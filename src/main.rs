@@ -21,20 +21,18 @@ mod publishers;
 mod subcommands;
 
 struct Args {
-    help : bool,
+    help: bool,
     authors: bool,
     publishers: bool,
     crates: bool,
     update: bool,
-    cache_max_age : Duration,
-    metadata_args : Vec<String>,
+    cache_max_age: Duration,
+    metadata_args: Vec<String>,
 }
 
 fn main() {
     match args_parser() {
-        Ok(args) => {
-            handle_args(args)
-        },
+        Ok(args) => handle_args(args),
         Err(e) => {
             eprintln!("Error {:?}", e);
             eprint_help();
@@ -42,7 +40,7 @@ fn main() {
     }
 }
 
-fn handle_args(args : Args) {
+fn handle_args(args: Args) {
     if args.help {
         eprint_help();
     } else if args.authors {
@@ -58,12 +56,15 @@ fn handle_args(args : Args) {
     }
 }
 
-fn parse_max_age(text : &str) -> Result<Duration, humantime::DurationError> {
+fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
     humantime::parse_duration(&text)
 }
 
-fn parse_metadata_args(text : &str) -> Result<Vec<String>, &'static str> {
-    Ok(text.split(" ").map(|s| String::from(s)).collect::<Vec<String>>())
+fn parse_metadata_args(text: &str) -> Result<Vec<String>, &'static str> {
+    Ok(text
+        .split(" ")
+        .map(|s| String::from(s))
+        .collect::<Vec<String>>())
 }
 
 fn args_parser() -> Result<Args, pico_args::Error> {
@@ -76,7 +77,9 @@ fn args_parser() -> Result<Args, pico_args::Error> {
         crates: args.contains(["-c", "--crates"]),
         update: args.contains(["-u", "--update"]),
         metadata_args: args.value_from_fn("--metadata-args", parse_metadata_args)?,
-        cache_max_age : args.opt_value_from_fn("--cache-max-age", parse_max_age)?.unwrap_or(default_cache_max_age),
+        cache_max_age: args
+            .opt_value_from_fn("--cache-max-age", parse_max_age)?
+            .unwrap_or(default_cache_max_age),
     };
     Ok(args)
 }

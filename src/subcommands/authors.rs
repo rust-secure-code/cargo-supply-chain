@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::common::*;
 
-pub fn authors(args : Vec<String>) {
+pub fn authors(args: Vec<String>) {
     let dependencies = sourced_dependencies(args);
 
     let authors: HashSet<_> = crate::authors::authors_of(&dependencies).collect();
