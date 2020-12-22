@@ -1,3 +1,5 @@
+use std::io::{Error, ErrorKind};
+
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
 use serde::Deserialize;
@@ -60,8 +62,15 @@ pub fn publisher_users(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
-    let data: UsersResponse = client.get(&url).call().into_json_deserialize()?;
-    Ok(data.users)
+    if let Some(resp) = retry_get(&url, client, 10) {
+        let data: UsersResponse = resp.into_json_deserialize()?;
+        Ok(data.users)
+    } else {
+        Err(Error::new(
+            ErrorKind::ConnectionReset,
+            "Failed to retrieve publisher users",
+        ))
+    }
 }
 
 pub fn publisher_teams(
@@ -69,8 +78,34 @@ pub fn publisher_teams(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
-    let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
-    Ok(data.teams)
+    if let Some(resp) = retry_get(&url, client, 10) {
+        let data: TeamsResponse = resp.into_json_deserialize()?;
+        Ok(data.teams)
+    } else {
+        Err(Error::new(
+            ErrorKind::ConnectionReset,
+            "Failed to retrieve publisher teams",
+        ))
+    }
+}
+
+fn retry_get(url: &String, client: &mut RateLimitedClient, attempts: u8) -> Option<ureq::Response> {
+    let mut resp = client.get(&url).call();
+    let mut count = 1;
+    while resp.status() != 200 && count <= attempts {
+        eprintln!(
+            "Failed retrieving {:?}, trying again in 5 seconds, attempt {}/{}",
+            url, count, attempts
+        );
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        resp = client.get(&url).call();
+        count += 1;
+    }
+    if resp.status() == 200 {
+        Some(resp)
+    } else {
+        None
+    }
 }
 
 pub fn fetch_owners_of_crates(
@@ -135,14 +170,12 @@ pub fn fetch_owners_of_crates(
                 i,
                 crates_io_names.len()
             );
-            users.insert(
-                crate_name.clone(),
-                publisher_users(&mut client, crate_name).unwrap(), //TODO: don't panic
-            );
-            teams.insert(
-                crate_name.clone(),
-                publisher_teams(&mut client, crate_name).unwrap(), //TODO: don't panic
-            );
+            if let Ok(pusers) = publisher_users(&mut client, crate_name) {
+                users.insert(crate_name.clone(), pusers);
+            }
+            if let Ok(pteams) = publisher_teams(&mut client, crate_name) {
+                teams.insert(crate_name.clone(), pteams);
+            }
         }
     }
     (users, teams)

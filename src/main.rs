@@ -76,7 +76,9 @@ fn args_parser() -> Result<Args, pico_args::Error> {
         publishers: args.contains(["-p", "--publishers"]),
         crates: args.contains(["-c", "--crates"]),
         update: args.contains(["-u", "--update"]),
-        metadata_args: args.value_from_fn("--metadata-args", parse_metadata_args)?,
+        metadata_args: args
+            .opt_value_from_fn("--metadata-args", parse_metadata_args)?
+            .unwrap_or(Vec::new()),
         cache_max_age: args
             .opt_value_from_fn("--cache-max-age", parse_max_age)?
             .unwrap_or(default_cache_max_age),
