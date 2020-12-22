@@ -20,7 +20,6 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
-#[derive(Debug)]
 struct Args {
     help : bool,
     authors: bool,
@@ -79,7 +78,6 @@ fn args_parser() -> Result<Args, pico_args::Error> {
         metadata_args: args.value_from_fn("--metadata-args", parse_metadata_args)?,
         cache_max_age : args.opt_value_from_fn("--cache-max-age", parse_max_age)?.unwrap_or(default_cache_max_age),
     };
-    println!("args {:?}", args);
     Ok(args)
 }
 
