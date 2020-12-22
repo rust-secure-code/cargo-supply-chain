@@ -12,15 +12,7 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(mut args: std::env::ArgsOs) -> Vec<SourcedPackage> {
-    let mut extra_options: Vec<String> = Vec::new();
-    while let Some(arg) = args.next() {
-        match arg.into_string() {
-            Ok(arg) => extra_options.push(arg),
-            Err(arg) => bail_bad_arg(arg),
-        }
-    }
-
+pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
     let meta = MetadataCommand::new()
         .features(AllFeatures)
         .other_options(extra_options)
