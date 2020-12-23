@@ -23,7 +23,7 @@ mod subcommands;
 #[derive(Debug)]
 struct Args {
     help: bool,
-    command : String,
+    command: String,
     cache_max_age: Duration,
     metadata_args: Vec<String>,
 }
@@ -84,7 +84,7 @@ fn args_parser() -> Result<Args, pico_args::Error> {
     if let Some(command) = args.subcommand()? {
         let args = Args {
             help: args.contains(["-h", "--help"]),
-            command : command,
+            command: command,
             metadata_args: metadata_args,
             cache_max_age: args
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?
