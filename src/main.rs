@@ -30,28 +30,34 @@ struct Args {
 
 fn main() {
     match args_parser() {
-        Ok(args) => handle_args(args),
+        Ok(args) => match handle_args(args) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error: {}", e);
+            }
+        },
         Err(e) => {
-            eprintln!("Error {:?}", e);
+            eprintln!("Error: {}", e);
             eprint_help();
         }
     }
 }
 
-fn handle_args(args: Args) {
+fn handle_args(args: Args) -> Result<(), std::io::Error> {
     if args.help {
         eprint_help();
     } else if args.command == "authors" {
         subcommands::authors(args.metadata_args)
     } else if args.command == "publishers" {
-        subcommands::publishers(args.metadata_args, args.cache_max_age)
+        subcommands::publishers(args.metadata_args, args.cache_max_age)?;
     } else if args.command == "crates" {
-        subcommands::crates(args.metadata_args, args.cache_max_age)
+        subcommands::crates(args.metadata_args, args.cache_max_age)?;
     } else if args.command == "update" {
         subcommands::update(args.cache_max_age)
     } else {
         eprint_help();
     }
+    Ok(())
 }
 
 fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {

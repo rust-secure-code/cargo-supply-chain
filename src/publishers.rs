@@ -61,7 +61,7 @@ pub fn publisher_users(
     client: &mut RateLimitedClient,
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
-    let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
+    let url = format!("https://crates.io2/api/v1/crates/{}/owner_user", crate_name);
     if let Some(resp) = retry_get(&url, client, 3) {
         let data: UsersResponse = resp.into_json_deserialize()?;
         Ok(data.users)
@@ -77,7 +77,7 @@ pub fn publisher_teams(
     client: &mut RateLimitedClient,
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
-    let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
+    let url = format!("https://crates.io2/api/v1/crates/{}/owner_team", crate_name);
     if let Some(resp) = retry_get(&url, client, 3) {
         let data: TeamsResponse = resp.into_json_deserialize()?;
         Ok(data.teams)
@@ -113,10 +113,10 @@ fn retry_get(url: &String, client: &mut RateLimitedClient, attempts: u8) -> Opti
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
     max_age: Duration,
-) -> (
+) -> Result<(
     HashMap<String, Vec<PublisherData>>,
     HashMap<String, Vec<PublisherData>>,
-) {
+)> {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
@@ -172,13 +172,11 @@ pub fn fetch_owners_of_crates(
                 i,
                 crates_io_names.len()
             );
-            if let Ok(pusers) = publisher_users(&mut client, crate_name) {
-                users.insert(crate_name.clone(), pusers);
-            }
-            if let Ok(pteams) = publisher_teams(&mut client, crate_name) {
-                teams.insert(crate_name.clone(), pteams);
-            }
+            let pusers = publisher_users(&mut client, crate_name)?;
+            users.insert(crate_name.clone(), pusers);
+            let pteams = publisher_teams(&mut client, crate_name)?;
+            teams.insert(crate_name.clone(), pteams);
         }
     }
-    (users, teams)
+    Ok((users, teams))
 }

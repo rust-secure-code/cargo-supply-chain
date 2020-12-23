@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherData, PublisherKind};
 
-pub fn crates(args: Vec<String>, max_age: std::time::Duration) {
+pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
     let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
-    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age);
+    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 
     // Merge maps back together. Ewww. Maybe there's a better way to go about this.
     let mut owners: HashMap<String, Vec<PublisherData>> = HashMap::new();
@@ -53,4 +53,5 @@ pub fn crates(args: Vec<String>, max_age: std::time::Duration) {
         println!("Invitations are also impossible to revoke, and they never expire.");
         println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
     }
+    Ok(())
 }

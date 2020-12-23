@@ -3,10 +3,10 @@ use std::collections::{BTreeMap, HashMap};
 use crate::publishers::fetch_owners_of_crates;
 use crate::{common::*, publishers::PublisherData};
 
-pub fn publishers(args: Vec<String>, max_age: std::time::Duration) {
+pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
     let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
-    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age);
+    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 
     if publisher_users.len() > 0 {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
@@ -47,6 +47,7 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) {
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
     }
+    Ok(())
 }
 
 /// Turns a crate-to-publishers mapping into publisher-to-crates mapping.
