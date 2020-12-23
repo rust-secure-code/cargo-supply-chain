@@ -61,7 +61,7 @@ pub fn publisher_users(
     client: &mut RateLimitedClient,
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
-    let url = format!("https://crates.io2/api/v1/crates/{}/owner_user", crate_name);
+    let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
     if let Some(resp) = retry_get(&url, client, 3) {
         let data: UsersResponse = resp.into_json_deserialize()?;
         Ok(data.users)
@@ -77,7 +77,7 @@ pub fn publisher_teams(
     client: &mut RateLimitedClient,
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
-    let url = format!("https://crates.io2/api/v1/crates/{}/owner_team", crate_name);
+    let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
     if let Some(resp) = retry_get(&url, client, 3) {
         let data: TeamsResponse = resp.into_json_deserialize()?;
         Ok(data.teams)
@@ -98,7 +98,7 @@ fn retry_get(url: &String, client: &mut RateLimitedClient, attempts: u8) -> Opti
             "Failed retrieving {:?}, trying again in {} seconds, attempt {}/{}",
             url, wait, count, attempts
         );
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_secs(wait));
         resp = client.get(&url).call();
         count += 1;
         wait *= 3;
