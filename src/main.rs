@@ -20,12 +20,10 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
+#[derive(Debug)]
 struct Args {
     help: bool,
-    authors: bool,
-    publishers: bool,
-    crates: bool,
-    update: bool,
+    command : String,
     cache_max_age: Duration,
     metadata_args: Vec<String>,
 }
@@ -43,13 +41,13 @@ fn main() {
 fn handle_args(args: Args) {
     if args.help {
         eprint_help();
-    } else if args.authors {
+    } else if args.command == "authors" {
         subcommands::authors(args.metadata_args)
-    } else if args.publishers {
+    } else if args.command == "publishers" {
         subcommands::publishers(args.metadata_args, args.cache_max_age)
-    } else if args.crates {
+    } else if args.command == "crates" {
         subcommands::crates(args.metadata_args, args.cache_max_age)
-    } else if args.update {
+    } else if args.command == "update" {
         subcommands::update(args.cache_max_age)
     } else {
         eprint_help();
@@ -60,30 +58,44 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
     humantime::parse_duration(&text)
 }
 
-fn parse_metadata_args(text: &str) -> Result<Vec<String>, &'static str> {
-    Ok(text
-        .split(" ")
-        .map(|s| String::from(s))
-        .collect::<Vec<String>>())
+fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
+    let mut supply_args = Vec::new();
+    let mut metadata_args = Vec::new();
+    let mut has_hit_dashes = false;
+    let mut first_skipped = false;
+    for arg in std::env::args() {
+        if arg == "--" {
+            has_hit_dashes = true;
+        } else if has_hit_dashes {
+            metadata_args.push(arg);
+        } else if first_skipped {
+            supply_args.push(std::ffi::OsString::from(arg));
+        } else {
+            first_skipped = true;
+        }
+    }
+    (supply_args, metadata_args)
 }
 
 fn args_parser() -> Result<Args, pico_args::Error> {
+    let (supply_args, metadata_args) = get_grouped_args();
     let default_cache_max_age = Duration::from_secs(48 * 3600);
-    let mut args = Arguments::from_env();
-    let args = Args {
-        help: args.contains(["-h", "--help"]),
-        authors: args.contains(["-a", "--authors"]),
-        publishers: args.contains(["-p", "--publishers"]),
-        crates: args.contains(["-c", "--crates"]),
-        update: args.contains(["-u", "--update"]),
-        metadata_args: args
-            .opt_value_from_fn("--metadata-args", parse_metadata_args)?
-            .unwrap_or(Vec::new()),
-        cache_max_age: args
-            .opt_value_from_fn("--cache-max-age", parse_max_age)?
-            .unwrap_or(default_cache_max_age),
-    };
-    Ok(args)
+    let mut args = Arguments::from_vec(supply_args);
+    if let Some(command) = args.subcommand()? {
+        let args = Args {
+            help: args.contains(["-h", "--help"]),
+            command : command,
+            metadata_args: metadata_args,
+            cache_max_age: args
+                .opt_value_from_fn("--cache-max-age", parse_max_age)?
+                .unwrap_or(default_cache_max_age),
+        };
+        println!("{:?}", args);
+        Ok(args)
+    } else {
+        eprint_help();
+        panic!("Failed to parse arguments");
+    }
 }
 
 fn eprint_help() {
