@@ -90,8 +90,8 @@ fn args_parser() -> Result<Args, pico_args::Error> {
     if let Some(command) = args.subcommand()? {
         let args = Args {
             help: args.contains(["-h", "--help"]),
-            command: command,
-            metadata_args: metadata_args,
+            command,
+            metadata_args,
             cache_max_age: args
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?
                 .unwrap_or(default_cache_max_age),

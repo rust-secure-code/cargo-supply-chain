@@ -62,15 +62,9 @@ pub fn publisher_users(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
-    if let Some(resp) = retry_get(&url, client, 3) {
-        let data: UsersResponse = resp.into_json_deserialize()?;
-        Ok(data.users)
-    } else {
-        Err(Error::new(
-            ErrorKind::ConnectionReset,
-            "Failed to retrieve publisher users",
-        ))
-    }
+    let resp = get_with_retry(&url, client, 3)?;
+    let data: UsersResponse = resp.into_json_deserialize()?;
+    Ok(data.users)
 }
 
 pub fn publisher_teams(
@@ -78,18 +72,16 @@ pub fn publisher_teams(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
-    if let Some(resp) = retry_get(&url, client, 3) {
-        let data: TeamsResponse = resp.into_json_deserialize()?;
-        Ok(data.teams)
-    } else {
-        Err(Error::new(
-            ErrorKind::ConnectionReset,
-            "Failed to retrieve publisher teams",
-        ))
-    }
+    let resp = get_with_retry(&url, client, 3)?;
+    let data: TeamsResponse = resp.into_json_deserialize()?;
+    Ok(data.teams)
 }
 
-fn retry_get(url: &String, client: &mut RateLimitedClient, attempts: u8) -> Option<ureq::Response> {
+fn get_with_retry(
+    url: &str,
+    client: &mut RateLimitedClient,
+    attempts: u8,
+) -> Result<ureq::Response> {
     let mut resp = client.get(&url).call();
     let mut count = 1;
     let mut wait = 10;
@@ -104,9 +96,10 @@ fn retry_get(url: &String, client: &mut RateLimitedClient, attempts: u8) -> Opti
         wait *= 3;
     }
     if resp.status() == 200 {
-        Some(resp)
+        Ok(resp)
     } else {
-        None
+        let err = resp.synthetic_error().as_ref().unwrap();
+        Err(Error::new(ErrorKind::Other, format!("{}", err)))
     }
 }
 

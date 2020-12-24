@@ -8,7 +8,7 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 
-    if publisher_users.len() > 0 {
+    if !publisher_users.is_empty() {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
         let user_to_crate_map = transpose_publishers_map(&publisher_users);
         let map_for_display = sort_transposed_map_for_display(user_to_crate_map);
@@ -25,7 +25,7 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
     println!("Invitations are also impossible to revoke, and they never expire.");
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
-    if publisher_teams.len() > 0 {
+    if !publisher_teams.is_empty() {
         println!(
             "\nAll members of the following teams can publish updates for your dependencies:\n"
         );

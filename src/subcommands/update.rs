@@ -1,5 +1,4 @@
 use crate::api_client::RateLimitedClient;
-use crate::common::*;
 use crate::crates_cache::{CratesCache, DownloadState};
 
 pub fn update(max_age: std::time::Duration) {

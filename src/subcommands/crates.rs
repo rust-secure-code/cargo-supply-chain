@@ -23,8 +23,7 @@ pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std
         (
             publishers
                 .iter()
-                .filter(|p| p.kind == PublisherKind::team)
-                .next()
+                .find(|p| p.kind == PublisherKind::team)
                 .is_none(), // contains at least one team
             usize::MAX - publishers.len(),
             name.clone(),
@@ -41,14 +40,14 @@ pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std
             .iter()
             .map(|p| match p.kind {
                 PublisherKind::team => format!("team \"{}\"", p.login),
-                PublisherKind::user => format!("{}", p.login),
+                PublisherKind::user => p.login.to_string(),
             })
             .collect();
         let publishers_list = comma_separated_list(&pretty_publishers);
         println!("{}. {}: {}", i + 1, crate_name, publishers_list);
     }
 
-    if ordered_owners.len() > 0 {
+    if !ordered_owners.is_empty() {
         println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
         println!("Invitations are also impossible to revoke, and they never expire.");
         println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
