@@ -46,16 +46,13 @@ fn main() {
 fn handle_args(args: Args) -> Result<(), std::io::Error> {
     if args.help {
         eprint_help();
-    } else if args.command == "authors" {
-        subcommands::authors(args.metadata_args)
-    } else if args.command == "publishers" {
-        subcommands::publishers(args.metadata_args, args.cache_max_age)?;
-    } else if args.command == "crates" {
-        subcommands::crates(args.metadata_args, args.cache_max_age)?;
-    } else if args.command == "update" {
-        subcommands::update(args.cache_max_age)
-    } else {
-        eprint_help();
+    }
+    match args.command.as_str() {
+        "authors" => subcommands::authors(args.metadata_args),
+        "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
+        "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+        "update" => subcommands::update(args.cache_max_age),
+        _ => eprint_help(),
     }
     Ok(())
 }
@@ -72,6 +69,8 @@ fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
     for arg in std::env::args() {
         if arg == "--" {
             has_hit_dashes = true;
+        } else if arg == "supply-chain" {
+            //ignored
         } else if has_hit_dashes {
             metadata_args.push(arg);
         } else if first_skipped {
@@ -96,7 +95,6 @@ fn args_parser() -> Result<Args, pico_args::Error> {
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?
                 .unwrap_or(default_cache_max_age),
         };
-        println!("{:?}", args);
         Ok(args)
     } else {
         eprint_help();
