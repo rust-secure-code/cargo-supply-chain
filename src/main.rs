@@ -70,7 +70,9 @@ fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
         if arg == "--" {
             has_hit_dashes = true;
         } else if arg == "supply-chain" {
-            //ignored
+            // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
+            // So instead of "update" our binary receives "supply-chain update".
+            // We ignore the "supply-chain" in the beginning if it's present.
         } else if has_hit_dashes {
             metadata_args.push(arg);
         } else if first_skipped {
