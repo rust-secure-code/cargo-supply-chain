@@ -84,7 +84,7 @@ fn get_with_retry(
 ) -> Result<ureq::Response> {
     let mut resp = client.get(&url).call();
     let mut count = 1;
-    let mut wait = 10;
+    let mut wait = 5;
     while resp.status() != 200 && count <= attempts {
         eprintln!(
             "Failed retrieving {:?}, trying again in {} seconds, attempt {}/{}",
