@@ -1,3 +1,9 @@
+## unreleased
+
+- In case of network failure, retry with exponential backoff up to 3 times
+- Use local certificate store instead of bundling the trusted CA certificates
+- Refactor argument parsing to use `pico-args` instead of hand-rolled parser
+
 ## v0.0.2 (2020-10-14)
 
 - `crates` - Shows the people or groups with publisher rights for each crate.
