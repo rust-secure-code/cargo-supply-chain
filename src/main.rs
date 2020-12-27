@@ -9,7 +9,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::time::Duration;
+use std::{process::exit, time::Duration};
 
 use pico_args::Arguments;
 
@@ -121,4 +121,5 @@ fn eprint_help() {
     cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 "
     );
+    exit(1);
 }
