@@ -9,7 +9,9 @@
 
 #![forbid(unsafe_code)]
 
-use common::bail_bad_arg;
+use std::time::Duration;
+
+use pico_args::Arguments;
 
 mod api_client;
 mod authors;
@@ -18,50 +20,86 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
-fn main() {
-    let mut args = std::env::args_os();
-    let _ = args.by_ref().next();
+#[derive(Debug)]
+struct Args {
+    help: bool,
+    command: String,
+    cache_max_age: Duration,
+    metadata_args: Vec<String>,
+}
 
-    while let Some(arg) = args.next() {
-        match arg.to_str() {
-            None => bail_bad_arg(arg),
-            Some("supply-chain") => (), // first arg when run as `cargo supply-chain`
-            Some("authors") => return subcommands::authors(args),
-            Some("publishers") => return subcommands::publishers(args),
-            Some("crates") => return subcommands::crates(args),
-            Some("update") => return subcommands::update(args),
-            Some(arg) if arg.starts_with("--") => bail_unknown_option(arg),
-            Some(arg) if arg.starts_with('-') => bail_unknown_short_option(arg),
-            Some(arg) => bail_unknown_command(arg),
+fn main() {
+    match args_parser() {
+        Ok(args) => match handle_args(args) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error: {}", e);
+            }
+        },
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            eprint_help();
         }
     }
-
-    // No command selected.
-    bail_no_command();
 }
 
-fn bail_unknown_option(arg: &str) -> ! {
-    eprintln!("Unknown option: {}", std::path::Path::new(&arg).display());
-    eprint_help();
-    std::process::exit(1);
+fn handle_args(args: Args) -> Result<(), std::io::Error> {
+    if args.help {
+        eprint_help();
+    }
+    match args.command.as_str() {
+        "authors" => subcommands::authors(args.metadata_args),
+        "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
+        "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+        "update" => subcommands::update(args.cache_max_age),
+        _ => eprint_help(),
+    }
+    Ok(())
 }
 
-fn bail_unknown_short_option(arg: &str) -> ! {
-    eprintln!("Unknown flag: {}", arg);
-    eprint_help();
-    std::process::exit(1);
+fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
+    humantime::parse_duration(&text)
 }
 
-fn bail_unknown_command(arg: &str) -> ! {
-    eprintln!("Unknown command: {}", arg);
-    eprint_help();
-    std::process::exit(1);
+fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
+    let mut supply_args = Vec::new();
+    let mut metadata_args = Vec::new();
+    let mut has_hit_dashes = false;
+    let mut first_skipped = false;
+    for arg in std::env::args() {
+        if arg == "--" {
+            has_hit_dashes = true;
+        } else if arg == "supply-chain" {
+            //ignored
+        } else if has_hit_dashes {
+            metadata_args.push(arg);
+        } else if first_skipped {
+            supply_args.push(std::ffi::OsString::from(arg));
+        } else {
+            first_skipped = true;
+        }
+    }
+    (supply_args, metadata_args)
 }
 
-fn bail_no_command() -> ! {
-    eprintln!("No command selected.");
-    eprint_help();
-    std::process::exit(1);
+fn args_parser() -> Result<Args, pico_args::Error> {
+    let (supply_args, metadata_args) = get_grouped_args();
+    let default_cache_max_age = Duration::from_secs(48 * 3600);
+    let mut args = Arguments::from_vec(supply_args);
+    if let Some(command) = args.subcommand()? {
+        let args = Args {
+            help: args.contains(["-h", "--help"]),
+            command,
+            metadata_args,
+            cache_max_age: args
+                .opt_value_from_fn("--cache-max-age", parse_max_age)?
+                .unwrap_or(default_cache_max_age),
+        };
+        Ok(args)
+    } else {
+        eprint_help();
+        panic!("Failed to parse arguments");
+    }
 }
 
 fn eprint_help() {

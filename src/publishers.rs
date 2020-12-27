@@ -1,3 +1,5 @@
+use std::io::{Error, ErrorKind};
+
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
 use serde::Deserialize;
@@ -60,7 +62,8 @@ pub fn publisher_users(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
-    let data: UsersResponse = client.get(&url).call().into_json_deserialize()?;
+    let resp = get_with_retry(&url, client, 3)?;
+    let data: UsersResponse = resp.into_json_deserialize()?;
     Ok(data.users)
 }
 
@@ -69,17 +72,44 @@ pub fn publisher_teams(
     crate_name: &str,
 ) -> Result<Vec<PublisherData>> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
-    let data: TeamsResponse = client.get(&url).call().into_json_deserialize()?;
+    let resp = get_with_retry(&url, client, 3)?;
+    let data: TeamsResponse = resp.into_json_deserialize()?;
     Ok(data.teams)
+}
+
+fn get_with_retry(
+    url: &str,
+    client: &mut RateLimitedClient,
+    attempts: u8,
+) -> Result<ureq::Response> {
+    let mut resp = client.get(&url).call();
+    let mut count = 1;
+    let mut wait = 10;
+    while resp.status() != 200 && count <= attempts {
+        eprintln!(
+            "Failed retrieving {:?}, trying again in {} seconds, attempt {}/{}",
+            url, wait, count, attempts
+        );
+        std::thread::sleep(std::time::Duration::from_secs(wait));
+        resp = client.get(&url).call();
+        count += 1;
+        wait *= 3;
+    }
+    if resp.status() == 200 {
+        Ok(resp)
+    } else {
+        let err = resp.synthetic_error().as_ref().unwrap();
+        Err(Error::new(ErrorKind::Other, format!("{}", err)))
+    }
 }
 
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
     max_age: Duration,
-) -> (
+) -> Result<(
     HashMap<String, Vec<PublisherData>>,
     HashMap<String, Vec<PublisherData>>,
-) {
+)> {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
@@ -135,15 +165,11 @@ pub fn fetch_owners_of_crates(
                 i,
                 crates_io_names.len()
             );
-            users.insert(
-                crate_name.clone(),
-                publisher_users(&mut client, crate_name).unwrap(), //TODO: don't panic
-            );
-            teams.insert(
-                crate_name.clone(),
-                publisher_teams(&mut client, crate_name).unwrap(), //TODO: don't panic
-            );
+            let pusers = publisher_users(&mut client, crate_name)?;
+            users.insert(crate_name.clone(), pusers);
+            let pteams = publisher_teams(&mut client, crate_name)?;
+            teams.insert(crate_name.clone(), pteams);
         }
     }
-    (users, teams)
+    Ok((users, teams))
 }

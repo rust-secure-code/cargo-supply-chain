@@ -12,15 +12,7 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(mut args: std::env::ArgsOs) -> Vec<SourcedPackage> {
-    let mut extra_options: Vec<String> = Vec::new();
-    while let Some(arg) = args.next() {
-        match arg.into_string() {
-            Ok(arg) => extra_options.push(arg),
-            Err(arg) => bail_bad_arg(arg),
-        }
-    }
-
+pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
     let meta = MetadataCommand::new()
         .features(AllFeatures)
         .other_options(extra_options)
@@ -82,7 +74,7 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
     {
         // scope bound to avoid accidentally referencing local crates when working with foreign ones
         let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
-        if local_crate_names.len() > 0 {
+        if !local_crate_names.is_empty() {
             println!(
                 "\nThe following crates will be ignored because they come from a local directory:"
             );
@@ -94,7 +86,7 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
 
     {
         let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
-        if foreign_crate_names.len() > 0 {
+        if !foreign_crate_names.is_empty() {
             println!("\nCannot audit the following crates because they are not from crates.io:");
             for crate_name in &foreign_crate_names {
                 println!(" - {}", crate_name);
@@ -114,51 +106,4 @@ pub fn comma_separated_list(list: &[String]) -> String {
         result.push_str(crate_name.as_str());
     }
     result
-}
-
-pub fn get_argument<T, E: std::fmt::Display>(
-    what: std::ffi::OsString,
-    args: &mut std::env::ArgsOs,
-    parser: impl FnOnce(&str) -> Result<T, E>,
-) -> T {
-    let arg = match args.next() {
-        Some(arg) => arg,
-        None => bail_missing_argument(what),
-    };
-    let arg_str = match arg.to_str() {
-        Some(arg) => arg,
-        None => bail_invalid_argument(what, std::path::Path::new(&arg).display()),
-    };
-    parser(arg_str).unwrap_or_else(|err| bail_invalid_argument(what, err))
-}
-
-pub fn bail_bad_arg(arg: std::ffi::OsString) -> ! {
-    eprintln!("Bad argument: {}", std::path::Path::new(&arg).display());
-    std::process::exit(1);
-}
-
-pub fn bail_missing_argument(arg: std::ffi::OsString) -> ! {
-    eprintln!(
-        "Missing argument to {}",
-        std::path::Path::new(&arg).display()
-    );
-    std::process::exit(1);
-}
-
-pub fn bail_invalid_argument(arg: std::ffi::OsString, err: impl std::fmt::Display) -> ! {
-    eprintln!(
-        "Invalid argument to {}: {}",
-        std::path::Path::new(&arg).display(),
-        err
-    );
-    std::process::exit(1);
-}
-
-pub fn bail_unknown_subcommand_arg(subcommand: &str, arg: std::ffi::OsString) {
-    eprintln!(
-        "Bad argument to {} command: {}",
-        subcommand,
-        std::path::Path::new(&arg).display()
-    );
-    std::process::exit(1);
 }
