@@ -66,13 +66,13 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
 fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
     // Everything before "--" should be parsed, and everything after it should be passed to cargo-metadata
     let mut supply_args: Vec<OsString> = std::env::args_os()
-        .skip(1)
+        .skip(1) // skip argv[0], the name of the binary
         .take_while(|x| x != "--")
         .collect();
     let metadata_args = std::env::args()
-        .skip(1)
+        .skip(1)// skip argv[0], the name of the binary
         .skip_while(|x| x != "--")
-        .skip(1)
+        .skip(1) // skips "--" itself
         .collect();
     // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
     // So instead of "update" our binary receives "supply-chain update".
