@@ -70,7 +70,7 @@ fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
         .take_while(|x| x != "--")
         .collect();
     let metadata_args = std::env::args()
-        .skip(1)// skip argv[0], the name of the binary
+        .skip(1) // skip argv[0], the name of the binary
         .skip_while(|x| x != "--")
         .skip(1) // skips "--" itself
         .collect();
