@@ -1,4 +1,4 @@
-## unreleased
+## v0.0.3 (2020-12-28)
 
 - In case of network failure, retry with exponential backoff up to 3 times
 - Use local certificate store instead of bundling the trusted CA certificates
