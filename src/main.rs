@@ -9,7 +9,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::{process::exit, time::Duration};
+use std::{ffi::OsString, process::exit, time::Duration};
 
 use pico_args::Arguments;
 
@@ -62,22 +62,14 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
     humantime::parse_duration(&text)
 }
 
-fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
-    let mut supply_args = Vec::new();
-    let mut metadata_args = Vec::new();
-    let mut has_hit_dashes = false;
-    for arg in std::env::args().skip(1) {
-        if arg == "--" {
-            has_hit_dashes = true;
-        } else if arg == "supply-chain" {
-            // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
-            // So instead of "update" our binary receives "supply-chain update".
-            // We ignore the "supply-chain" in the beginning if it's present.
-        } else if has_hit_dashes {
-            metadata_args.push(arg);
-        } else {
-            supply_args.push(std::ffi::OsString::from(arg));
-        }
+fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
+    let mut supply_args: Vec<OsString> = std::env::args_os().skip(1).take_while(|x| x != "--").collect();
+    let metadata_args = std::env::args().skip(1).skip_while(|x| x != "--").skip(1).collect();
+    // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
+    // So instead of "update" our binary receives "supply-chain update".
+    // We ignore the "supply-chain" in the beginning if it's present.
+    if supply_args[0] == "supply-chain" {
+        supply_args.remove(0);
     }
     (supply_args, metadata_args)
 }
