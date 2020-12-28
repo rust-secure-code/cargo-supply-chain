@@ -62,7 +62,9 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
     humantime::parse_duration(&text)
 }
 
+/// Separates arguments intended for us and for cargo-metadata
 fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
+    // Everything before "--" should be parsed, and everything after it should be passed to cargo-metadata
     let mut supply_args: Vec<OsString> = std::env::args_os().skip(1).take_while(|x| x != "--").collect();
     let metadata_args = std::env::args().skip(1).skip_while(|x| x != "--").skip(1).collect();
     // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
