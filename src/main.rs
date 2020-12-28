@@ -66,8 +66,7 @@ fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
     let mut supply_args = Vec::new();
     let mut metadata_args = Vec::new();
     let mut has_hit_dashes = false;
-    let mut first_skipped = false;
-    for arg in std::env::args() {
+    for arg in std::env::args().skip(1) {
         if arg == "--" {
             has_hit_dashes = true;
         } else if arg == "supply-chain" {
@@ -76,10 +75,8 @@ fn get_grouped_args() -> (Vec<std::ffi::OsString>, Vec<String>) {
             // We ignore the "supply-chain" in the beginning if it's present.
         } else if has_hit_dashes {
             metadata_args.push(arg);
-        } else if first_skipped {
-            supply_args.push(std::ffi::OsString::from(arg));
         } else {
-            first_skipped = true;
+            supply_args.push(std::ffi::OsString::from(arg));
         }
     }
     (supply_args, metadata_args)
