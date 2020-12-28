@@ -101,12 +101,14 @@ fn args_parser() -> Result<Args, pico_args::Error> {
         };
         if !args.free.is_empty() {
             eprint_help();
-            panic!("Failed to parse arguments");
+            return Err(pico_args::Error::UnusedArgsLeft(args.free));
         }
         Ok(args)
     } else {
         eprint_help();
-        panic!("Failed to parse arguments");
+        Err(pico_args::Error::ArgumentParsingFailed {
+            cause: "No subcommand given".to_string(),
+        })
     }
 }
 
