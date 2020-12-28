@@ -26,6 +26,7 @@ struct Args {
     command: String,
     cache_max_age: Duration,
     metadata_args: Vec<String>,
+    free: Vec<String>,
 }
 
 fn main() {
@@ -96,11 +97,18 @@ fn args_parser() -> Result<Args, pico_args::Error> {
             cache_max_age: args
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?
                 .unwrap_or(default_cache_max_age),
+            free: args.free()?,
         };
+        if !args.free.is_empty() {
+            eprint_help();
+            return Err(pico_args::Error::UnusedArgsLeft(args.free));
+        }
         Ok(args)
     } else {
         eprint_help();
-        panic!("Failed to parse arguments");
+        Err(pico_args::Error::ArgumentParsingFailed {
+            cause: "No subcommand given".to_string(),
+        })
     }
 }
 
