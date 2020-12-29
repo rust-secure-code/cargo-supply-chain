@@ -21,6 +21,7 @@ pub fn update(max_age: std::time::Duration) {
         },
         Err(error) => {
             println!("Could not update to the latest daily data dump!\n{}", error);
+            std::process::exit(1);
         }
     }
 }
