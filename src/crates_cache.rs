@@ -137,6 +137,11 @@ impl CratesCache {
             request.call()
         };
 
+        if response.error() {
+            let err = response.synthetic_error().as_ref().unwrap();
+            return Err(io::Error::new(io::ErrorKind::Other, format!("{}", err)));
+        }
+
         // Not modified.
         if response.status() == 304 {
             return Ok(DownloadState::Fresh);
