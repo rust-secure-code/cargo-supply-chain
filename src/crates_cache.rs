@@ -137,9 +137,12 @@ impl CratesCache {
             request.call()
         };
 
+        // ureq API wart: you have to explicitly check for errors. This will be fixed in ureq 2.0
         if response.error() {
-            let err = response.synthetic_error().as_ref().unwrap();
-            return Err(io::Error::new(io::ErrorKind::Other, format!("{}", err)));
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                response.into_string()?,
+            ));
         }
 
         // Not modified.
