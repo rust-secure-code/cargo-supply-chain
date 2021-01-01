@@ -1,3 +1,8 @@
+## v0.0.4 (2021-01-01)
+
+- Report failure instead of panicking on network failure in `update` subcommand
+- Correctly handle errors returned by the remote server
+
 ## v0.0.3 (2020-12-28)
 
 - In case of network failure, retry with exponential backoff up to 3 times
