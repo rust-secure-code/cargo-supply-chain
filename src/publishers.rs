@@ -95,11 +95,11 @@ fn get_with_retry(
         count += 1;
         wait *= 3;
     }
-    if resp.status() == 200 {
+    if resp.ok() {
         Ok(resp)
     } else {
-        let err = resp.synthetic_error().as_ref().unwrap();
-        Err(Error::new(ErrorKind::Other, format!("{}", err)))
+        // ureq API wart: you have to explicitly check for errors. This will be fixed in ureq 2.0
+        Err(Error::new(ErrorKind::Other, resp.into_string()?))
     }
 }
 
