@@ -99,7 +99,7 @@ fn get_with_retry(
         Ok(resp)
     } else {
         // ureq API wart: you have to explicitly check for errors. This will be fixed in ureq 2.0
-        Err(Error::new(ErrorKind::Other, resp.into_string()?));
+        Err(Error::new(ErrorKind::Other, resp.into_string()?))
     }
 }
 
