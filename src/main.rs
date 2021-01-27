@@ -77,9 +77,10 @@ fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
     // When invoked via `cargo supply-chain update`, Cargo passes the arguments it receives verbatim.
     // So instead of "update" our binary receives "supply-chain update".
     // We ignore the "supply-chain" in the beginning if it's present.
-    if supply_args[0] == "supply-chain" {
+    if supply_args.get(0) == Some(&OsString::from("supply-chain")) {
         supply_args.remove(0);
     }
+
     (supply_args, metadata_args)
 }
 
