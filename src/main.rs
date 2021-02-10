@@ -47,8 +47,8 @@ struct Args {
 }
 
 fn main() {
-    match parse_args() {
-        Ok(args) => match handle_args(args) {
+    match process_args() {
+        Ok(args) => match dispatch_command(args) {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -61,7 +61,7 @@ fn main() {
     }
 }
 
-fn handle_args(args: Args) -> Result<(), std::io::Error> {
+fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
     if args.help {
         eprint_help();
     }
@@ -80,7 +80,7 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
 }
 
 /// Separates arguments intended for us and for cargo-metadata
-fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
+fn separate_metadata_args() -> (Vec<OsString>, Vec<String>) {
     // Everything before "--" should be parsed, and everything after it should be passed to cargo-metadata
     let mut supply_args: Vec<OsString> = std::env::args_os()
         .skip(1) // skip argv[0], the name of the binary
@@ -101,8 +101,10 @@ fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
     (supply_args, metadata_args)
 }
 
-fn parse_args() -> Result<Args, pico_args::Error> {
-    let (supply_args, metadata_args) = get_grouped_args();
+/// Converts all recognized arguments into a struct.
+/// Does not check whether the argument is valid for the given subcommand.
+fn process_args() -> Result<Args, pico_args::Error> {
+    let (supply_args, metadata_args) = separate_metadata_args();
     let default_cache_max_age = Duration::from_secs(48 * 3600);
     let mut args = Arguments::from_vec(supply_args);
     if let Some(command) = args.subcommand()? {
