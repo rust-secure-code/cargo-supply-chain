@@ -14,7 +14,6 @@ Run `cargo install cargo-supply-chain` to install this tool. Once installed, sim
 
 ### Subcommands
 
-- `authors` - Lists all the authors for all dependencies, as specified in `Cargo.toml` files. Works offline.
 - `publishers` - Lists all the people and teams that can publish updates to your dependencies on crates.io.
 - `crates` - Lists all the crates you depend on, with the list of publishers for each crate.
 - `update` - Downloads a daily database dump of crates.io (roughly 256Mb) to speed up `publishers` and `crates` subcommands. Data downloaded this way may be out of date by up to 48 hours. You can set the maximum allowed age using the `--cache-max-age` flag; if it's exceeded, live data will be fetched instead.
