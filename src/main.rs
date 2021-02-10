@@ -65,7 +65,7 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
     if args.help {
         subcommands::help(Some(&args.command));
     } else {
-        if args.command != "help" && ! args.free.is_empty() {
+        if args.command != "help" && !args.free.is_empty() {
             eprintln!("Unrecognized argument: {}", args.free[0]);
             eprint_help();
         }
