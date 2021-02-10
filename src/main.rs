@@ -35,7 +35,7 @@ Arguments:
                    The format is a human readable duration such as `1w` or `1d 6h`.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
-  cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu";
+  cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu\n";
 
 #[derive(Debug)]
 struct Args {
