@@ -25,15 +25,16 @@ pub(crate) const CLI_HELP: &str =
     "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
 
 Commands:
-  authors — List all authors in the dependency graph (as specified in Cargo.toml)
-  publishers — List all crates.io publishers in the dependency graph
-  crates — List all crates in dependency graph and crates.io publishers for each
-  update — Download the latest daily dump from crates.io to speed up other commands
-  help — Displays this help message and exits
+  authors\tList all authors in the dependency graph (as specified in Cargo.toml)
+  publishers\tList all crates.io publishers in the dependency graph
+  crates\tList all crates in dependency graph and crates.io publishers for each
+  update\tDownload the latest daily dump from crates.io to speed up other commands
+
+See 'cargo supply-chain help <command>' for more information on a specific command.
 
 Arguments:
-  --cache-max-age — The cache will be considered valid while younger than specified.
-                    The format is a human readable duration such as `1w` or `1d 6h`.
+  --cache-max-age  The cache will be considered valid while younger than specified.
+                   The format is a human readable duration such as `1w` or `1d 6h`.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu";
