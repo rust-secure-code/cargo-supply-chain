@@ -14,7 +14,6 @@ use std::{ffi::OsString, time::Duration};
 use pico_args::Arguments;
 
 mod api_client;
-mod authors;
 mod common;
 mod crates_cache;
 mod publishers;
@@ -68,7 +67,6 @@ fn handle_args(args: Args) -> Result<(), std::io::Error> {
         eprint_help();
     }
     match args.command.as_str() {
-        "authors" => subcommands::authors(args.metadata_args),
         "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
         "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
         "update" => subcommands::update(args.cache_max_age),
