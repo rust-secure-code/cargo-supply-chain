@@ -1,3 +1,10 @@
+## v0.1 (2021-02-10)
+
+- Drop `authors` subcommand
+- Add `help` subcommand providing detailed help for each subcommand
+- Bring help text more in line with Cargo help text
+- Warn about a large amount of data to be downloaded in `update` subcommand
+
 ## v0.0.4 (2021-01-01)
 
 - Report failure instead of panicking on network failure in `update` subcommand
