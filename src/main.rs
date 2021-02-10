@@ -49,7 +49,7 @@ struct Args {
 }
 
 fn main() {
-    match args_parser() {
+    match parse_args() {
         Ok(args) => match handle_args(args) {
             Ok(_) => {}
             Err(e) => {
@@ -104,7 +104,7 @@ fn get_grouped_args() -> (Vec<OsString>, Vec<String>) {
     (supply_args, metadata_args)
 }
 
-fn args_parser() -> Result<Args, pico_args::Error> {
+fn parse_args() -> Result<Args, pico_args::Error> {
     let (supply_args, metadata_args) = get_grouped_args();
     let default_cache_max_age = Duration::from_secs(48 * 3600);
     let mut args = Arguments::from_vec(supply_args);
