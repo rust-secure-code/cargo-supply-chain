@@ -20,6 +20,24 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
+/// CLI-focused help message for displaying to the user
+pub(crate) const CLI_HELP: &str =
+    "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
+
+Commands:
+  authors — List all authors in the dependency graph (as specified in Cargo.toml)
+  publishers — List all crates.io publishers in the dependency graph
+  crates — List all crates in dependency graph and crates.io publishers for each
+  update — Download the latest daily dump from crates.io to speed up other commands
+  help — Displays this help message and exits
+
+Arguments:
+  --cache-max-age — The cache will be considered valid while younger than specified.
+                    The format is a human readable duration such as `1w` or `1d 6h`.
+
+Any arguments after the `--` will be passed to `cargo metadata`, for example:
+  cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu";
+
 #[derive(Debug)]
 struct Args {
     help: bool,
@@ -53,6 +71,7 @@ fn handle_args(args: Args) -> Result<(), std::io::Error> {
         "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
         "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
         "update" => subcommands::update(args.cache_max_age),
+        "help" => subcommands::help(),
         _ => eprint_help(),
     }
     Ok(())
@@ -112,21 +131,6 @@ fn args_parser() -> Result<Args, pico_args::Error> {
 }
 
 fn eprint_help() {
-    eprintln!(
-        "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
-
-  Commands:
-    authors\t\tList all authors in the dependency graph (as specified in Cargo.toml)
-    publishers\t\tList all crates.io publishers in the dependency graph
-    crates\t\tList all crates in dependency graph and crates.io publishers for each
-    update\t\tDownload the latest daily dump from crates.io to speed up other commands
-  Arguments:
-    --cache-max-age\t\tThe cache will be considered valid while younger than specified.
-    \t\t\tThe format is a human recognizable duration such as `1w` or `1d 6h`.
-
-  Any arguments after -- will be passed to `cargo metadata`, for example:
-    cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
-"
-    );
+    eprintln!("{}", CLI_HELP);
     std::process::exit(1);
 }
