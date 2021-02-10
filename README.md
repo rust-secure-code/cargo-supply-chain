@@ -10,7 +10,9 @@ Use cases include:
 
 ## Usage
 
-Run `cargo install cargo-supply-chain` to install this tool. Once installed, simply navigate to your project and run `cargo supply-chain` followed by a subcommand, e.g. `cargo supply-chain publishers`.
+Run `cargo install cargo-supply-chain` to install this tool.
+
+Once installed, simply navigate to your project and run `cargo supply-chain` followed by a subcommand, e.g. `cargo supply-chain publishers`.
 
 ### Subcommands
 
