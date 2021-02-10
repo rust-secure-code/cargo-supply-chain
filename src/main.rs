@@ -63,7 +63,7 @@ fn main() {
 
 fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
     // FIXME: validating arguments and acting on them is lumped together in one function.
-    // This ugly and interferes with error handling.
+    // This ugly and interferes with error handling and unit testing.
     if args.help {
         subcommands::help(Some(&args.command));
     } else {
