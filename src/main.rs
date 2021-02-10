@@ -24,7 +24,7 @@ pub(crate) const CLI_HELP: &str =
     "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
 
 Commands:
-  publishers\tList all crates.io publishers in the dependency graph
+  publishers\tLists all crates.io publishers in the depedency graph
   crates\tList all crates in dependency graph and crates.io publishers for each
   update\tDownload the latest daily dump from crates.io to speed up other commands
 
@@ -33,6 +33,7 @@ See 'cargo supply-chain help <command>' for more information on a specific comma
 Arguments:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
+                   If not specified, the cache is considered valid for 48 hours.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu\n";
