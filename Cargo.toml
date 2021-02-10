@@ -11,7 +11,7 @@ categories = ["development-tools::cargo-plugins", "command-line-utilities"]
 [dependencies]
 cargo_metadata = "0.11.3"
 csv = "1.1"
-directories = "3"
+directories-next = "2"
 flate2 = "1"
 humantime = "2"
 humantime-serde = "1"

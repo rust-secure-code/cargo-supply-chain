@@ -107,7 +107,7 @@ impl CratesCache {
 
     fn cache_dir() -> Option<PathBuf> {
         let projects =
-            directories::ProjectDirs::from("", "rust-secure-code", "cargo-supply-chain")?;
+            directories_next::ProjectDirs::from("", "rust-secure-code", "cargo-supply-chain")?;
         Some(projects.cache_dir().to_owned())
     }
 
