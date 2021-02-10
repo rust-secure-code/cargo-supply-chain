@@ -47,7 +47,7 @@ struct Args {
 }
 
 fn main() {
-    match process_args() {
+    match parse_args() {
         Ok(args) => match dispatch_command(args) {
             Ok(_) => {}
             Err(e) => {
@@ -63,14 +63,19 @@ fn main() {
 
 fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
     if args.help {
-        eprint_help();
-    }
-    match args.command.as_str() {
-        "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
-        "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
-        "update" => subcommands::update(args.cache_max_age),
-        "help" => subcommands::help(None),
-        _ => eprint_help(),
+        subcommands::help(Some(&args.command));
+    } else {
+        if args.command != "help" && ! args.free.is_empty() {
+            eprintln!("Unrecognized argument: {}", args.free[0]);
+            eprint_help();
+        }
+        match args.command.as_str() {
+            "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
+            "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+            "update" => subcommands::update(args.cache_max_age),
+            "help" => subcommands::help(args.free.get(0).map(String::as_str)),
+            _ => eprint_help(),
+        }
     }
     Ok(())
 }
@@ -103,7 +108,7 @@ fn separate_metadata_args() -> (Vec<OsString>, Vec<String>) {
 
 /// Converts all recognized arguments into a struct.
 /// Does not check whether the argument is valid for the given subcommand.
-fn process_args() -> Result<Args, pico_args::Error> {
+fn parse_args() -> Result<Args, pico_args::Error> {
     let (supply_args, metadata_args) = separate_metadata_args();
     let default_cache_max_age = Duration::from_secs(48 * 3600);
     let mut args = Arguments::from_vec(supply_args);
@@ -117,10 +122,6 @@ fn process_args() -> Result<Args, pico_args::Error> {
                 .unwrap_or(default_cache_max_age),
             free: args.free()?,
         };
-        if !args.free.is_empty() {
-            eprint_help();
-            return Err(pico_args::Error::UnusedArgsLeft(args.free));
-        }
         Ok(args)
     } else {
         eprint_help();

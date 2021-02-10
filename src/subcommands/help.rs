@@ -4,7 +4,7 @@ use crate::CLI_HELP;
 use std::process;
 
 /// Provides help infomation which proceeds to exit
-pub fn help(command: Option<String>) {
+pub fn help(command: Option<&str>) {
     match command {
         None => println!("{}", CLI_HELP),
         Some(Command) => todo!(),
