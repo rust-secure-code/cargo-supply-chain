@@ -7,20 +7,20 @@ pub fn update(max_age: std::time::Duration) {
 
     match cache.download(&mut client, max_age) {
         Ok(state) => match state {
-            DownloadState::Fresh => println!("No updates found"),
+            DownloadState::Fresh => eprintln!("No updates found"),
             DownloadState::Expired => {
-                println!("Successfully updated to the newest daily data dump.")
+                eprintln!("Successfully updated to the newest daily data dump.")
             }
             DownloadState::Stale => {
-                println!("Downloaded latest daily data dump.");
-                println!(
+                eprintln!("Downloaded latest daily data dump.");
+                eprintln!(
                     "  Warning: it matches the previous version that was considered outdated."
                 );
                 std::process::exit(1);
             }
         },
         Err(error) => {
-            println!("Could not update to the latest daily data dump!\n{}", error);
+            eprintln!("Could not update to the latest daily data dump!\n{}", error);
             std::process::exit(1);
         }
     }
