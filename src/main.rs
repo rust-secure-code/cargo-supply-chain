@@ -69,7 +69,7 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
         "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
         "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
         "update" => subcommands::update(args.cache_max_age),
-        "help" => subcommands::help(),
+        "help" => subcommands::help(None),
         _ => eprint_help(),
     }
     Ok(())
