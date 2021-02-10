@@ -37,7 +37,7 @@ OPTIONS:
                    If not specified, the cache is considered valid for 48 hours.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
-cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu";
+cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu\n";
 
 const PUBLISHERS_HELP: &str =
     "Lists all crates.io publishers in the depedency graph and owned crates for each
@@ -58,7 +58,7 @@ OPTIONS:
                    If not specified, the cache is considered valid for 48 hours.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
-cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu";
+cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu\n";
 
 const UPDATE_HELP: &str = "Download the latest daily dump from crates.io to speed up other commands
 
@@ -71,5 +71,4 @@ USAGE:
 OPTIONS:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
-                   If not specified, the cache is considered valid for 48 hours.
-";
+                   If not specified, the cache is considered valid for 48 hours.\n";
