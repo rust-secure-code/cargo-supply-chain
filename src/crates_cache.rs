@@ -2,7 +2,14 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs, io, path::PathBuf, time::Duration, time::SystemTimeError};
+use std::{
+    collections::HashMap,
+    fs,
+    io::{self, ErrorKind},
+    path::PathBuf,
+    time::Duration,
+    time::SystemTimeError,
+};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -116,8 +123,8 @@ impl CratesCache {
         &mut self,
         client: &mut RateLimitedClient,
         max_age: Duration,
-    ) -> io::Result<DownloadState> {
-        let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
+    ) -> Result<DownloadState, io::Error> {
+        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         cache.validate_file_creation()?;
 
         let remembered_etag;
@@ -128,22 +135,15 @@ impl CratesCache {
                 // See if we can consider the resource not-yet-stale.
                 if let Some(true) = meta.validate(max_age) {
                     if let Some(etag) = meta.etag.as_ref() {
-                        request.set("if-none-match", &etag);
+                        request = request.set("if-none-match", &etag);
                     }
                 }
             } else {
                 remembered_etag = None;
             }
             request.call()
-        };
-
-        // ureq API wart: you have to explicitly check for errors. This will be fixed in ureq 2.0
-        if response.error() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                response.into_string()?,
-            ));
         }
+        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
         // Not modified.
         if response.status() == 304 {
@@ -155,7 +155,7 @@ impl CratesCache {
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
-        let cache = self.cache_dir.as_ref().ok_or(io::ErrorKind::NotFound)?;
+        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
@@ -353,7 +353,7 @@ impl MetadataStored {
 }
 
 impl CacheDir {
-    fn validate_file_creation(&self) -> io::Result<()> {
+    fn validate_file_creation(&self) -> Result<(), io::Error> {
         if !self.0.exists() {
             fs::create_dir_all(&self.0)?;
         }
@@ -370,7 +370,7 @@ impl CacheDir {
         &self,
         cache: &'cache mut Option<T>,
         file: &str,
-    ) -> io::Result<&'cache T>
+    ) -> Result<&'cache T, io::Error>
     where
         T: serde::de::DeserializeOwned,
     {
@@ -384,7 +384,7 @@ impl CacheDir {
         }
     }
 
-    fn store<T>(&self, cache: &mut Option<T>, file: &str, value: T) -> io::Result<()>
+    fn store<T>(&self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
     where
         T: Serialize,
     {
@@ -402,7 +402,7 @@ impl CacheDir {
         file: &str,
         entries: &[T],
         key_fn: &dyn Fn(&T) -> K,
-    ) -> io::Result<()>
+    ) -> Result<(), io::Error>
     where
         T: Serialize + Clone,
         K: Serialize + Eq + std::hash::Hash,
@@ -420,7 +420,7 @@ impl CacheDir {
         file: &str,
         entries: &[T],
         key_fn: &dyn Fn(&T) -> K,
-    ) -> io::Result<()>
+    ) -> Result<(), io::Error>
     where
         T: Serialize + Clone,
         K: Serialize + Eq + std::hash::Hash,
