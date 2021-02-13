@@ -9,13 +9,7 @@ impl Default for RateLimitedClient {
     fn default() -> Self {
         RateLimitedClient {
             last_request_time: None,
-            agent: ureq::agent()
-                .set(
-                    "User-Agent",
-                    "cargo supply-chain (https://github.com/rust-secure-code/cargo-supply-chain)",
-                )
-                .set("Accept", "application/json")
-                .build(),
+            agent: ureq::agent(),
         }
     }
 }
@@ -27,7 +21,10 @@ impl RateLimitedClient {
 
     pub fn get(&mut self, url: &str) -> ureq::Request {
         self.wait_to_honor_rate_limit();
-        self.agent.get(url)
+        self.agent.get(url).set(
+            "User-Agent",
+            "cargo supply-chain (https://github.com/rust-secure-code/cargo-supply-chain)",
+        )
     }
 
     /// Waits until at least 1 second has elapsed since last request,

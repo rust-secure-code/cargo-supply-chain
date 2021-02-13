@@ -1,9 +1,11 @@
-use std::io::{Error, ErrorKind};
-
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
 use serde::Deserialize;
-use std::{collections::HashMap, io::Result, time::Duration};
+use std::{
+    collections::HashMap,
+    io::{self, ErrorKind},
+    time::Duration,
+};
 
 use crate::common::*;
 
@@ -60,20 +62,20 @@ pub enum PublisherKind {
 pub fn publisher_users(
     client: &mut RateLimitedClient,
     crate_name: &str,
-) -> Result<Vec<PublisherData>> {
+) -> Result<Vec<PublisherData>, io::Error> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_user", crate_name);
     let resp = get_with_retry(&url, client, 3)?;
-    let data: UsersResponse = resp.into_json_deserialize()?;
+    let data: UsersResponse = resp.into_json()?;
     Ok(data.users)
 }
 
 pub fn publisher_teams(
     client: &mut RateLimitedClient,
     crate_name: &str,
-) -> Result<Vec<PublisherData>> {
+) -> Result<Vec<PublisherData>, io::Error> {
     let url = format!("https://crates.io/api/v1/crates/{}/owner_team", crate_name);
     let resp = get_with_retry(&url, client, 3)?;
-    let data: TeamsResponse = resp.into_json_deserialize()?;
+    let data: TeamsResponse = resp.into_json()?;
     Ok(data.teams)
 }
 
@@ -81,8 +83,12 @@ fn get_with_retry(
     url: &str,
     client: &mut RateLimitedClient,
     attempts: u8,
-) -> Result<ureq::Response> {
-    let mut resp = client.get(&url).call();
+) -> Result<ureq::Response, io::Error> {
+    let mut resp = client
+        .get(&url)
+        .call()
+        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
     let mut count = 1;
     let mut wait = 5;
     while resp.status() != 200 && count <= attempts {
@@ -91,25 +97,29 @@ fn get_with_retry(
             url, wait, count, attempts
         );
         std::thread::sleep(std::time::Duration::from_secs(wait));
-        resp = client.get(&url).call();
+
+        resp = client
+            .get(&url)
+            .call()
+            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
         count += 1;
         wait *= 3;
     }
-    if resp.ok() {
-        Ok(resp)
-    } else {
-        // ureq API wart: you have to explicitly check for errors. This will be fixed in ureq 2.0
-        Err(Error::new(ErrorKind::Other, resp.into_string()?))
-    }
+
+    Ok(resp)
 }
 
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
     max_age: Duration,
-) -> Result<(
-    HashMap<String, Vec<PublisherData>>,
-    HashMap<String, Vec<PublisherData>>,
-)> {
+) -> Result<
+    (
+        HashMap<String, Vec<PublisherData>>,
+        HashMap<String, Vec<PublisherData>>,
+    ),
+    io::Error,
+> {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
