@@ -11,12 +11,12 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
     if !users.is_empty() {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
         let user_to_crate_map = transpose_publishers_map(&users);
-        let map_for_display = sort_transposed_map_for_display(user_to_crate_map);
-        for (i, (user, crates)) in map_for_display.iter().enumerate() {
+        let map_for_display = sort_transposed_map_for_display(&user_to_crate_map);
+        for (i, (user, crates)) in map_for_display.into_iter().enumerate() {
             // We do not print usernames, since you can embed terminal control sequences in them
             // and erase yourself from the output that way.
             // TODO: check if it's possible to smuggle those into github/crates.io usernames
-            let crate_list = comma_separated_list(&crates);
+            let crate_list = comma_separated_list(crates.iter().copied());
             println!(" {}. {} via crates: {}", i + 1, &user.login, crate_list);
         }
     }
@@ -30,9 +30,9 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
             "\nAll members of the following teams can publish updates for your dependencies:\n"
         );
         let team_to_crate_map = transpose_publishers_map(&teams);
-        let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
-        for (i, (team, crates)) in map_for_display.iter().enumerate() {
-            let crate_list = comma_separated_list(&crates);
+        let map_for_display = sort_transposed_map_for_display(&team_to_crate_map);
+        for (i, (team, crates)) in map_for_display.into_iter().enumerate() {
+            let crate_list = comma_separated_list(crates.iter().copied());
             if let Some(url) = &team.url {
                 println!(
                     " {}. \"{}\" ({}) via crates: {}",
@@ -54,14 +54,14 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
 /// BTreeMap is used because PublisherData doesn't implement Hash.
 fn transpose_publishers_map(
     input: &HashMap<String, Vec<PublisherData>>,
-) -> BTreeMap<PublisherData, Vec<String>> {
-    let mut result: BTreeMap<PublisherData, Vec<String>> = BTreeMap::new();
+) -> BTreeMap<PublisherData, Vec<&str>> {
+    let mut result: BTreeMap<PublisherData, Vec<&str>> = BTreeMap::new();
     for (crate_name, publishers) in input.iter() {
         for publisher in publishers {
             result
                 .entry(publisher.clone())
                 .or_default()
-                .push(crate_name.clone());
+                .push(crate_name.as_str());
         }
     }
     result
@@ -69,12 +69,13 @@ fn transpose_publishers_map(
 
 /// Returns a Vec sorted so that publishers are sorted by the number of crates they control.
 /// If that number is the same, sort by login.
-fn sort_transposed_map_for_display(
-    input: BTreeMap<PublisherData, Vec<String>>,
-) -> Vec<(PublisherData, Vec<String>)> {
-    let mut result: Vec<_> = input.into_iter().collect();
+fn sort_transposed_map_for_display<'a>(
+    input: &'a BTreeMap<PublisherData, Vec<&'a str>>,
+) -> Vec<(&PublisherData, &Vec<&str>)> {
+    let mut result: Vec<_> = input.iter().collect();
     result.sort_unstable_by_key(|(publisher, crates)| {
-        (usize::MAX - crates.len(), publisher.login.clone())
+        (usize::MAX - crates.len(), publisher.login.as_str())
     });
+
     result
 }

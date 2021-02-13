@@ -165,8 +165,8 @@ pub fn fetch_owners_of_crates(
             //     i,
             //     crates_io_names.len()
             // );
-            users.insert(crate_name.clone(), pub_users);
-            teams.insert(crate_name.clone(), pub_teams);
+            users.insert(crate_name.to_string(), pub_users);
+            teams.insert(crate_name.to_string(), pub_teams);
         } else {
             eprintln!(
                 "Fetching data for \"{}\" ({}/{})",
@@ -175,9 +175,9 @@ pub fn fetch_owners_of_crates(
                 crates_io_names.len()
             );
             let pusers = publisher_users(&mut client, crate_name)?;
-            users.insert(crate_name.clone(), pusers);
+            users.insert(crate_name.to_string(), pusers);
             let pteams = publisher_teams(&mut client, crate_name)?;
-            teams.insert(crate_name.clone(), pteams);
+            teams.insert(crate_name.to_string(), pteams);
         }
     }
     Ok(CrateOwners { users, teams })

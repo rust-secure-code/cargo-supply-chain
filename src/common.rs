@@ -58,11 +58,11 @@ pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
     dependencies
 }
 
-pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<String> {
-    let mut filtered_crate_names: Vec<String> = crates
+pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<&str> {
+    let mut filtered_crate_names: Vec<&str> = crates
         .iter()
         .filter(|p| p.source == source)
-        .map(|p| p.package.name.clone())
+        .map(|p| p.package.name.as_str())
         .collect();
     // Collecting into a HashSet is less user-friendly because order varies between runs
     filtered_crate_names.sort_unstable();
@@ -95,7 +95,7 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
     }
 }
 
-pub fn comma_separated_list(list: &[String]) -> String {
+pub fn comma_separated_list<'a>(list: impl Iterator<Item = &'a str>) -> String {
     let mut result = String::new();
     let mut first_loop = true;
     for crate_name in list {
@@ -103,7 +103,7 @@ pub fn comma_separated_list(list: &[String]) -> String {
             result.push_str(", ");
         }
         first_loop = false;
-        result.push_str(crate_name.as_str());
+        result.push_str(crate_name);
     }
     result
 }
