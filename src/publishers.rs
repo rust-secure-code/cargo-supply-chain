@@ -110,16 +110,15 @@ fn get_with_retry(
     Ok(resp)
 }
 
+pub struct CrateOwners {
+    pub users: HashMap<String, Vec<PublisherData>>,
+    pub teams: HashMap<String, Vec<PublisherData>>,
+}
+
 pub fn fetch_owners_of_crates(
     dependencies: &[SourcedPackage],
     max_age: Duration,
-) -> Result<
-    (
-        HashMap<String, Vec<PublisherData>>,
-        HashMap<String, Vec<PublisherData>>,
-    ),
-    io::Error,
-> {
+) -> Result<CrateOwners, io::Error> {
     let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
@@ -181,5 +180,5 @@ pub fn fetch_owners_of_crates(
             teams.insert(crate_name.clone(), pteams);
         }
     }
-    Ok((users, teams))
+    Ok(CrateOwners { users, teams })
 }

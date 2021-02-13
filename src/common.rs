@@ -49,7 +49,7 @@ pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
         .map(|(id, kind)| {
             let dep = what.get(id).cloned().unwrap();
             SourcedPackage {
-                source: kind.clone(),
+                source: *kind,
                 package: dep,
             }
         })
