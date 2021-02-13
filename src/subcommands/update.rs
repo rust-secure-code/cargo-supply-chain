@@ -2,7 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CratesCache, DownloadState};
 
 pub fn update(max_age: std::time::Duration) {
-    eprintln!("Note: this will download large amounts of data, roughtly 250Mb.");
+    eprintln!("Note: this will download large amounts of data (approximately 250Mb).");
     eprintln!("On a slow network this will take a while.");
 
     let mut cache = CratesCache::new();
