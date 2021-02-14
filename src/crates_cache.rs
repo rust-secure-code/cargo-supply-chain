@@ -392,7 +392,8 @@ impl CacheDir {
         *cache = None;
         let value = cache.get_or_insert(value);
 
-        let out = fs::File::create(self.0.join(file))?;
+        let out_file = fs::File::create(self.0.join(file))?;
+        let out = io::BufWriter::new(out_file);
         serde_json::to_writer(out, value)?;
         Ok(())
     }
