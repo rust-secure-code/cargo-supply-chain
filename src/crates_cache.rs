@@ -378,7 +378,8 @@ impl CacheDir {
             Some(datum) => Ok(datum),
             None => {
                 let file = fs::File::open(self.0.join(file))?;
-                let crates: T = serde_json::from_reader(file).unwrap();
+                let reader = io::BufReader::new(file);
+                let crates: T = serde_json::from_reader(reader).unwrap();
                 Ok(cache.get_or_insert(crates))
             }
         }
