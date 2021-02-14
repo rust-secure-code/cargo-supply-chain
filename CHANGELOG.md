@@ -1,9 +1,10 @@
-## v0.1 (2021-02-10)
+## v0.1 (unreleased)
 
 - Drop `authors` subcommand
 - Add `help` subcommand providing detailed help for each subcommand
 - Bring help text more in line with Cargo help text
 - Warn about a large amount of data to be downloaded in `update` subcommand
+- Buffer reads and writes to cache files for a 6x speedup when using cache
 
 ## v0.0.4 (2021-01-01)
 
