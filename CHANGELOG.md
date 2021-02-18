@@ -1,4 +1,8 @@
-## v0.1 (2021-02-18)
+## v0.1.1 (2021-02-18)
+
+- Drop extreaneous files from the tarball uploaded to crates.io
+
+## v0.1.0 (2021-02-18)
 
 - Drop `authors` subcommand
 - Add `help` subcommand providing detailed help for each subcommand
