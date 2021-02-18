@@ -1,4 +1,4 @@
-## v0.1 (unreleased)
+## v0.1 (2021-02-18)
 
 - Drop `authors` subcommand
 - Add `help` subcommand providing detailed help for each subcommand
