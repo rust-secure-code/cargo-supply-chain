@@ -1,6 +1,6 @@
 [package]
 name = "cargo-supply-chain"
-version = "0.1.2-rc0"
+version = "0.1.2"
 description = "Gather author, contributor, publisher data on crates in your dependency graph"
 repository = "https://github.com/rust-secure-code/cargo-supply-chain"
 authors = ["Andreas Molzer <andreas.molzer@gmx.de>", "Sergey \"Shnatsel\" Davidoff <shnatsel@gmail.com>"]
