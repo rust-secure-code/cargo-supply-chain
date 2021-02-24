@@ -6,8 +6,8 @@ pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std
     complain_about_non_crates_io_crates(&dependencies);
     let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 
-    for team in publisher_teams {
-        owners.entry(team.0).or_default().extend(team.1)
+    for (crate_name, publishers) in publisher_teams {
+        owners.entry(crate_name).or_default().extend(publishers)
     }
 
     let mut ordered_owners: Vec<_> = owners.into_iter().collect();
