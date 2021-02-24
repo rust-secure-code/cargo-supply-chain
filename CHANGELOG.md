@@ -1,3 +1,10 @@
+## v0.1.2 (2021-02-24)
+
+- Fix help text sometimes being misaligned
+- Change download progress messages to start counting from 1 rather than from 0
+- Only print warnings about crates.io that are immediately relevant to listing
+  dependencies and publishers
+
 ## v0.1.1 (2021-02-18)
 
 - Drop extreaneous files from the tarball uploaded to crates.io
