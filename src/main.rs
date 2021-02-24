@@ -24,9 +24,9 @@ pub(crate) const CLI_HELP: &str =
     "Usage: cargo supply-chain COMMAND [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
 
 Commands:
-  publishers\tLists all crates.io publishers in the depedency graph
-  crates\tList all crates in dependency graph and crates.io publishers for each
-  update\tDownload the latest daily dump from crates.io to speed up other commands
+  publishers   List all crates.io publishers in the depedency graph
+  crates       List all crates in dependency graph and crates.io publishers for each
+  update       Download the latest daily dump from crates.io to speed up other commands
 
 See 'cargo supply-chain help <command>' for more information on a specific command.
 
