@@ -154,7 +154,7 @@ pub fn fetch_owners_of_crates(
         eprintln!("\nFetching publisher info from crates.io");
         eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     }
-    for (i, crate_name) in crates_io_names.iter().enumerate() {
+    for (ind, crate_name) in crates_io_names.iter().enumerate() {
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
         if let (Some(pub_users), Some(pub_teams)) = (cached_users, cached_teams) {
@@ -172,7 +172,7 @@ pub fn fetch_owners_of_crates(
             eprintln!(
                 "Fetching data for \"{}\" ({}/{})",
                 crate_name,
-                i,
+                ind + 1,
                 crates_io_names.len()
             );
             let pusers = publisher_users(&mut client, crate_name)?;
