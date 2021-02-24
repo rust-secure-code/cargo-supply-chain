@@ -1,20 +1,13 @@
-use std::collections::HashMap;
-
 use crate::common::*;
-use crate::publishers::{fetch_owners_of_crates, PublisherData, PublisherKind};
+use crate::publishers::{fetch_owners_of_crates, PublisherKind};
 
 pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
     let dependencies = sourced_dependencies(args);
     complain_about_non_crates_io_crates(&dependencies);
-    let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
+    let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 
-    // Merge maps back together. Ewww. Maybe there's a better way to go about this.
-    let mut owners: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    for map in &[publisher_users, publisher_teams] {
-        for (crate_name, publishers) in map.iter() {
-            let entry = owners.entry(crate_name.clone()).or_default();
-            entry.extend_from_slice(publishers);
-        }
+    for team in publisher_teams {
+        owners.entry(team.0).or_default().extend(team.1)
     }
 
     let mut ordered_owners: Vec<_> = owners.into_iter().collect();
@@ -29,7 +22,7 @@ pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std
             name.clone(),
         )
     });
-    for (_name, publishers) in ordered_owners.iter_mut() {
+    for (_, publishers) in ordered_owners.iter_mut() {
         // For each crate put teams first
         publishers.sort_unstable_by_key(|p| (p.kind, p.login.clone()));
     }
