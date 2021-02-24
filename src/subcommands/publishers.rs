@@ -22,7 +22,6 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
     }
 
     println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
-    println!("Invitations are also impossible to revoke, and they never expire.");
     println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
 
     if !publisher_teams.is_empty() {
