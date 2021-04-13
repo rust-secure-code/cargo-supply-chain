@@ -70,16 +70,17 @@ pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> 
     filtered_crate_names
 }
 
-pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
+pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) -> String {
+    let mut complaint: String = "".to_string();
     {
         // scope bound to avoid accidentally referencing local crates when working with foreign ones
         let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
         if !local_crate_names.is_empty() {
-            println!(
-                "\nThe following crates will be ignored because they come from a local directory:"
+            complaint.push_str(
+                "\nThe following crates will be ignored because they come from a local directory:",
             );
             for crate_name in &local_crate_names {
-                println!(" - {}", crate_name);
+                complaint.push_str(&format!(" - {}", crate_name)[..]);
             }
         }
     }
@@ -87,12 +88,15 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
     {
         let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
         if !foreign_crate_names.is_empty() {
-            println!("\nCannot audit the following crates because they are not from crates.io:");
+            complaint.push_str(
+                "\nCannot audit the following crates because they are not from crates.io:",
+            );
             for crate_name in &foreign_crate_names {
-                println!(" - {}", crate_name);
+                complaint.push_str(&format!(" - {}", crate_name)[..]);
             }
         }
     }
+    return complaint;
 }
 
 pub fn comma_separated_list(list: &[String]) -> String {

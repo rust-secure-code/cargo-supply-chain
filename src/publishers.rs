@@ -1,6 +1,8 @@
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
-use serde::Deserialize;
+
+use serde::{Deserialize, Serialize};
+
 use std::{
     collections::HashMap,
     io::{self, ErrorKind},
@@ -19,7 +21,7 @@ struct TeamsResponse {
     teams: Vec<PublisherData>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct PublisherData {
     pub id: u64,
     pub login: String,
@@ -52,7 +54,7 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
     team,

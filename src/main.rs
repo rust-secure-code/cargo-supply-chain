@@ -34,6 +34,7 @@ Arguments:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
                    If not specified, the cache is considered valid for 48 hours.
+  --json|-j The output of supported subcommands will be in json format.
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
@@ -44,6 +45,7 @@ struct Args {
     help: bool,
     command: String,
     cache_max_age: Duration,
+    json: bool,
     metadata_args: Vec<String>,
     free: Vec<String>,
 }
@@ -74,8 +76,10 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
             eprint_help();
         }
         match args.command.as_str() {
-            "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
-            "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+            "publishers" => {
+                subcommands::publishers(args.metadata_args, args.cache_max_age, args.json)?
+            }
+            "crates" => subcommands::crates(args.metadata_args, args.cache_max_age, args.json)?,
             "update" => subcommands::update(args.cache_max_age),
             "help" => subcommands::help(args.free.get(0).map(String::as_str)),
             _ => eprint_help(),
@@ -121,6 +125,7 @@ fn parse_args() -> Result<Args, pico_args::Error> {
             help: args.contains(["-h", "--help"]),
             command,
             metadata_args,
+            json: args.contains(["-j", "--json"]),
             cache_max_age: args
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?
                 .unwrap_or(default_cache_max_age),
