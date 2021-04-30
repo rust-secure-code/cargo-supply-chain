@@ -76,6 +76,7 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
         match args.command.as_str() {
             "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
             "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+            "json" => subcommands::json(args.metadata_args, args.cache_max_age)?,
             "update" => subcommands::update(args.cache_max_age),
             "help" => subcommands::help(args.free.get(0).map(String::as_str)),
             _ => eprint_help(),
