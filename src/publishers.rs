@@ -1,6 +1,6 @@
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{self, ErrorKind},

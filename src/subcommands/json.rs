@@ -1,9 +1,9 @@
 /// `json` subcommand is equivalent to `crates`, but provides structured output.
 use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
-use std::collections::BTreeMap;
 use serde::Serialize;
 use serde_json;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Serialize, Default, Clone)]
 pub struct StructuredOutput {
