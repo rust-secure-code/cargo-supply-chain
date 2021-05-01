@@ -15,7 +15,7 @@ pub fn help(command: Option<&str>) {
         Some("json") => {
             println!("{}", JSON_HELP);
             let schema = schema_for!(StructuredOutput);
-            println!("{}", serde_json::to_string_pretty(&schema).unwrap());
+            println!("\n{}", serde_json::to_string_pretty(&schema).unwrap());
         }
         Some(command) => {
             println!("Unknown subcommand: {}\n", command);
