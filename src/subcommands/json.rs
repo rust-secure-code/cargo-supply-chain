@@ -33,9 +33,7 @@ pub fn json(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::
     for (crate_name, publishers) in publisher_teams {
         owners.entry(crate_name).or_default().extend(publishers)
     }
-    // Convert from HashMap to BTreeMap because sorted output is a bit nicer to look at.
-    // Not that you normally need to, but it lets you pull less hair when debugging.
-    output.crates_io_crates = owners.into_iter().collect();
+    output.crates_io_crates = owners;
     // Print the result to stdout
     let stdout = std::io::stdout();
     let handle = stdout.lock();

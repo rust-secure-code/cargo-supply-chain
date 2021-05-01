@@ -2,7 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     io::{self, ErrorKind},
     time::Duration,
 };
@@ -115,8 +115,8 @@ pub fn fetch_owners_of_crates(
     max_age: Duration,
 ) -> Result<
     (
-        HashMap<String, Vec<PublisherData>>,
-        HashMap<String, Vec<PublisherData>>,
+        BTreeMap<String, Vec<PublisherData>>,
+        BTreeMap<String, Vec<PublisherData>>,
     ),
     io::Error,
 > {
@@ -139,8 +139,8 @@ pub fn fetch_owners_of_crates(
             false
         }
     };
-    let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    let mut users: BTreeMap<String, Vec<PublisherData>> = BTreeMap::new();
+    let mut teams: BTreeMap<String, Vec<PublisherData>> = BTreeMap::new();
 
     if using_cache {
         match cached.age() {
