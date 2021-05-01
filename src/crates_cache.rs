@@ -168,6 +168,11 @@ impl CratesCache {
                     .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec}  ETA {eta:4} - {msg:.cyan}")
                     .progress_chars("=> "));
             bar.set_length(length);
+        } else {
+            bar.println("Length unspecified, expect at least 250MiB");
+            bar.set_style(indicatif::ProgressStyle::default_spinner().template(
+                "{prefix:>12.bright.cyan} {spinner} {bytes:>9} {bytes_per_sec} - {msg:.cyan}",
+            ));
         }
 
         let etag = response.header("etag").map(String::from);
