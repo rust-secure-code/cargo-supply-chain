@@ -1,9 +1,9 @@
 //! Displays help infomation to the user when requested
 
-use crate::CLI_HELP;
-use std::process;
-use schemars::schema_for;
 use crate::subcommands::json::StructuredOutput;
+use crate::CLI_HELP;
+use schemars::schema_for;
+use std::process;
 
 /// Provides help infomation which proceeds to exit
 pub fn help(command: Option<&str>) {
@@ -14,7 +14,8 @@ pub fn help(command: Option<&str>) {
         Some("update") => println!("{}", UPDATE_HELP),
         Some("json") => {
             println!("{}", JSON_HELP);
-            println!("{}", serde_json::to_string_pretty(&schema_for!(StructuredOutput)).unwrap());
+            let schema = schema_for!(StructuredOutput);
+            println!("{}", serde_json::to_string_pretty(schema).unwrap());
         }
         Some(command) => {
             println!("Unknown subcommand: {}\n", command);

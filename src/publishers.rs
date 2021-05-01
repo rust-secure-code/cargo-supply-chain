@@ -57,7 +57,9 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(
+    JsonSchema, Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq,
+)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
     team,

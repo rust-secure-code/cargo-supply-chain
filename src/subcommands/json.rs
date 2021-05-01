@@ -2,10 +2,10 @@
 //! but provides structured output and more info about each publisher.
 use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
+use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json;
 use std::collections::BTreeMap;
-use schemars::JsonSchema;
 
 #[derive(JsonSchema, Debug, Serialize, Default, Clone)]
 pub struct StructuredOutput {
