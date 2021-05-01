@@ -21,13 +21,16 @@ struct TeamsResponse {
     teams: Vec<PublisherData>,
 }
 
+/// Data about a single publisher received from a crates.io API endpoint
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct PublisherData {
     pub id: u64,
     pub login: String,
     pub kind: PublisherKind,
     pub url: Option<String>,
+    /// Display name. It is NOT guaranteed to be unique!
     pub name: Option<String>,
+    /// Avatar image URL
     pub avatar: Option<String>,
 }
 

@@ -16,9 +16,9 @@ pub struct StructuredOutput {
 
 #[derive(JsonSchema, Debug, Serialize, Default, Clone)]
 pub struct NotAudited {
-    /// Crates that are imported from a location in the local filesystem, not from a registry
+    /// Names of crates that are imported from a location in the local filesystem, not from a registry
     local_crates: Vec<String>,
-    /// Crates that are neither from crates.io nor from a local filesystem
+    /// Names of crates that are neither from crates.io nor from a local filesystem
     foreign_crates: Vec<String>,
 }
 
