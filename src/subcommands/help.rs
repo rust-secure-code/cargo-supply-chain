@@ -79,10 +79,6 @@ It's not guaranteed that the local cache will be used if '--cache-max-age' is
 set to less than 48 hours, even if you've run 'update' subcommand just now.
 That's because crates.io database dumps may not be updated every single day.
 
-Note that detailed information on the origin of crates outside of crates.io is not
-provided. You can obtain this info from 'cargo metadata' that ships with Cargo,
-or use 'cargo deny' to define a custom policy regarding crate sources.
-
 USAGE:
   cargo supply-chain json [OPTIONS...] [-- CARGO_METADATA_OPTIONS...]
 
@@ -94,6 +90,10 @@ OPTIONS:
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 See `cargo metadata --help` for a list of flags it supports.
+
+Note that detailed information on the origin of crates outside of crates.io is not
+provided. You can obtain this info from 'cargo metadata' that ships with Cargo,
+or use 'cargo deny' to define a custom policy regarding crate sources.
 
 The JSON schema definition is as follows:";
 
