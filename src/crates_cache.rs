@@ -124,6 +124,14 @@ impl CratesCache {
         client: &mut RateLimitedClient,
         max_age: Duration,
     ) -> Result<DownloadState, io::Error> {
+        let bar = indicatif::ProgressBar::new(!0)
+            .with_prefix("Downloading")
+            .with_style(
+                indicatif::ProgressStyle::default_spinner()
+                    .template("{prefix:>12.bright.cyan} {spinner} {msg:.cyan}"),
+            )
+            .with_message("preparing");
+
         let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         cache.validate_file_creation()?;
 
@@ -147,17 +155,34 @@ impl CratesCache {
 
         // Not modified.
         if response.status() == 304 {
+            bar.finish_and_clear();
             return Ok(DownloadState::Fresh);
         }
 
+        if let Some(length) = response
+            .header("content-length")
+            .and_then(|l| l.parse().ok())
+        {
+            bar.set_style(
+                indicatif::ProgressStyle::default_bar()
+                    .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec} {elapsed:>4}/{eta:4} - {msg:.cyan}")
+                    .progress_chars("=> "));
+            bar.set_length(length);
+        }
+
         let etag = response.header("etag").map(String::from);
-        let reader = response.into_reader();
+        let reader = bar.wrap_read(response.into_reader());
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
         let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         for file in archive.entries()? {
             if let Ok(entry) = file {
+                if let Ok(path) = entry.path() {
+                    if let Some(name) = path.file_name().and_then(|f| f.to_str()) {
+                        bar.set_message(name.to_string());
+                    }
+                }
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
                     let owners: Vec<CrateOwner> = read_csv_data(entry)?;
                     cache.store_multi_map(
