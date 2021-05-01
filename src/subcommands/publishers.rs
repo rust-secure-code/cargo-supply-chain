@@ -68,10 +68,16 @@ fn transpose_publishers_map(
 
 /// Returns a Vec sorted so that publishers are sorted by the number of crates they control.
 /// If that number is the same, sort by login.
+/// Crate names are also sorted.
 fn sort_transposed_map_for_display(
     input: BTreeMap<PublisherData, Vec<String>>,
 ) -> Vec<(PublisherData, Vec<String>)> {
     let mut result: Vec<_> = input.into_iter().collect();
+    // Sort crate names
+    for (_publisher, crates_list) in result.iter_mut() {
+        crates_list.sort_unstable();
+    }
+    // Sort user names
     result.sort_unstable_by_key(|(publisher, crates)| {
         (usize::MAX - crates.len(), publisher.login.clone())
     });

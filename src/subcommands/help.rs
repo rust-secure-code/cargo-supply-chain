@@ -97,6 +97,10 @@ const UPDATE_HELP: &str = "Download the latest daily dump from crates.io to spee
 If the local cache is already younger than specified in '--cache-max-age' option,
 a newer version will not be downloaded.
 
+Note that this downloads the entire crates.io database, which is hundreds of Mb of data!
+If you are on a metered connection, you should not be running the 'update' subcommand.
+Instead, rely on requests to the live API - they are slower, but use much less data.
+
 USAGE:
   cargo supply-chain update [OPTIONS...]
 
