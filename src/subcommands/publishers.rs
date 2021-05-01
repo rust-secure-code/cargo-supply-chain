@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use crate::publishers::fetch_owners_of_crates;
 use crate::{common::*, publishers::PublisherData};
@@ -52,7 +52,7 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
 /// Turns a crate-to-publishers mapping into publisher-to-crates mapping.
 /// BTreeMap is used because PublisherData doesn't implement Hash.
 fn transpose_publishers_map(
-    input: &HashMap<String, Vec<PublisherData>>,
+    input: &BTreeMap<String, Vec<PublisherData>>,
 ) -> BTreeMap<PublisherData, Vec<String>> {
     let mut result: BTreeMap<PublisherData, Vec<String>> = BTreeMap::new();
     for (crate_name, publishers) in input.iter() {

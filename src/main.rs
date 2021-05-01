@@ -26,6 +26,7 @@ pub(crate) const CLI_HELP: &str =
 Commands:
   publishers   List all crates.io publishers in the depedency graph
   crates       List all crates in dependency graph and crates.io publishers for each
+  json         Like 'crates', but in JSON and with more fields for each publisher
   update       Download the latest daily dump from crates.io to speed up other commands
 
 See 'cargo supply-chain help <command>' for more information on a specific command.
@@ -76,6 +77,7 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
         match args.command.as_str() {
             "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
             "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
+            "json" => subcommands::json(args.metadata_args, args.cache_max_age)?,
             "update" => subcommands::update(args.cache_max_age),
             "help" => subcommands::help(args.free.get(0).map(String::as_str)),
             _ => eprint_help(),

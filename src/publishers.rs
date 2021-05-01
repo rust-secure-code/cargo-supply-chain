@@ -1,11 +1,13 @@
 use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CacheState, CratesCache};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     io::{self, ErrorKind},
     time::Duration,
 };
+
+use schemars::JsonSchema;
 
 use crate::common::*;
 
@@ -19,13 +21,16 @@ struct TeamsResponse {
     teams: Vec<PublisherData>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+/// Data about a single publisher received from a crates.io API endpoint
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct PublisherData {
     pub id: u64,
     pub login: String,
     pub kind: PublisherKind,
     pub url: Option<String>,
+    /// Display name. It is NOT guaranteed to be unique!
     pub name: Option<String>,
+    /// Avatar image URL
     pub avatar: Option<String>,
 }
 
@@ -52,7 +57,9 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(
+    JsonSchema, Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq,
+)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
     team,
@@ -115,8 +122,8 @@ pub fn fetch_owners_of_crates(
     max_age: Duration,
 ) -> Result<
     (
-        HashMap<String, Vec<PublisherData>>,
-        HashMap<String, Vec<PublisherData>>,
+        BTreeMap<String, Vec<PublisherData>>,
+        BTreeMap<String, Vec<PublisherData>>,
     ),
     io::Error,
 > {
@@ -139,8 +146,8 @@ pub fn fetch_owners_of_crates(
             false
         }
     };
-    let mut users: HashMap<String, Vec<PublisherData>> = HashMap::new();
-    let mut teams: HashMap<String, Vec<PublisherData>> = HashMap::new();
+    let mut users: BTreeMap<String, Vec<PublisherData>> = BTreeMap::new();
+    let mut teams: BTreeMap<String, Vec<PublisherData>> = BTreeMap::new();
 
     if using_cache {
         match cached.age() {
