@@ -4,7 +4,6 @@ use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
 use schemars::JsonSchema;
 use serde::Serialize;
-use serde_json;
 use std::collections::BTreeMap;
 
 #[derive(JsonSchema, Debug, Serialize, Default, Clone)]
