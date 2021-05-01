@@ -1,3 +1,9 @@
+## Unreleased
+
+- Added a detailed progress bar to the `update` subcommand using `indicatif`
+- Added `json` subcommand providing structured output and more details
+- The list of crates in the output of `publishers` subcommand is now sorted
+
 ## v0.1.2 (2021-02-24)
 
 - Fix help text sometimes being misaligned
