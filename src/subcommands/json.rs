@@ -28,7 +28,12 @@ pub fn json(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::
     output.not_audited.local_crates = crate_names_from_source(&dependencies, PkgSource::Local);
     output.not_audited.foreign_crates = crate_names_from_source(&dependencies, PkgSource::Foreign);
     // Fetch list of owners and publishers
-    let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
+    let (mut owners, mut publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
+    // Sort the vectors of publisher data so that users could diff the output.
+    // That's not a super common thing to do, but sorting is cheap, so why not.
+    for list in owners.values_mut().chain(publisher_teams.values_mut()) {
+        list.sort_unstable_by_key(|x| x.login.clone())
+    }
     // Merge the two maps we received into one
     for (crate_name, publishers) in publisher_teams {
         owners.entry(crate_name).or_default().extend(publishers)
