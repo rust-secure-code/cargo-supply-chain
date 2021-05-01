@@ -179,6 +179,7 @@ impl CratesCache {
         let reader = bar.wrap_read(response.into_reader());
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
+        let mut meta: Option<Metadata> = None;
 
         let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         for file in archive.entries()? {
@@ -221,18 +222,23 @@ impl CratesCache {
                         &|team| team.id,
                     )?;
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
-                    let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache.store(
-                        &mut self.metadata,
-                        Self::METADATA_FS,
-                        MetadataStored {
-                            timestamp: meta.timestamp,
-                            etag: etag.clone(),
-                        },
-                    )?;
+                    meta = Some(serde_json::from_reader(entry)?);
+                    // We will only commit the metadata to cache once the entire cache is updated.
                 }
             }
         }
+
+        // Now that we've downloaded the entire thing, commit the metadata that contains the timestamp.
+        // If we do it earlier, it's possible to have a partially updated cache that's considered fresh.
+        let meta = meta.expect("The crates.io daily dump did not contain the 'metadata.json' file!");
+        cache.store(
+            &mut self.metadata,
+            Self::METADATA_FS,
+            MetadataStored {
+                timestamp: meta.timestamp,
+                etag: etag.clone(),
+            },
+        )?;
 
         // If we get here, we had no etag or the etag mismatched or we forced a download due to
         // stale data. Catch the last as it means the crates.io daily dumps were not updated.
