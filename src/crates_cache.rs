@@ -165,7 +165,7 @@ impl CratesCache {
         {
             bar.set_style(
                 indicatif::ProgressStyle::default_bar()
-                    .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec} {elapsed:>4}/{eta:4} - {msg:.cyan}")
+                    .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec}  ETA {eta:4} - {msg:.cyan}")
                     .progress_chars("=> "));
             bar.set_length(length);
         }
