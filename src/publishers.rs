@@ -7,6 +7,8 @@ use std::{
     time::Duration,
 };
 
+use schemars::JsonSchema;
+
 use crate::common::*;
 
 #[derive(Deserialize)]
@@ -19,7 +21,7 @@ struct TeamsResponse {
     teams: Vec<PublisherData>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct PublisherData {
     pub id: u64,
     pub login: String,
@@ -52,7 +54,7 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
     team,

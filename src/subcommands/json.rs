@@ -5,15 +5,16 @@ use crate::publishers::{fetch_owners_of_crates, PublisherData};
 use serde::Serialize;
 use serde_json;
 use std::collections::BTreeMap;
+use schemars::JsonSchema;
 
-#[derive(Debug, Serialize, Default, Clone)]
+#[derive(JsonSchema, Debug, Serialize, Default, Clone)]
 pub struct StructuredOutput {
     not_audited: NotAudited,
     /// Maps crate names to info about the publishers of each crate
     crates_io_crates: BTreeMap<String, Vec<PublisherData>>,
 }
 
-#[derive(Debug, Serialize, Default, Clone)]
+#[derive(JsonSchema, Debug, Serialize, Default, Clone)]
 pub struct NotAudited {
     /// Crates that are imported from a location in the local filesystem, not from a registry
     local_crates: Vec<String>,

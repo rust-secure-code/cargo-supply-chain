@@ -2,6 +2,8 @@
 
 use crate::CLI_HELP;
 use std::process;
+use schemars::schema_for;
+use crate::subcommands::json::StructuredOutput;
 
 /// Provides help infomation which proceeds to exit
 pub fn help(command: Option<&str>) {
@@ -9,8 +11,11 @@ pub fn help(command: Option<&str>) {
         None => println!("{}", CLI_HELP),
         Some("publishers") => println!("{}", PUBLISHERS_HELP),
         Some("crates") => println!("{}", CRATES_HELP),
-        Some("json") => println!("{}", JSON_HELP),
         Some("update") => println!("{}", UPDATE_HELP),
+        Some("json") => {
+            println!("{}", JSON_HELP);
+            println!("{}", serde_json::to_string_pretty(&schema_for!(StructuredOutput)).unwrap());
+        }
         Some(command) => {
             println!("Unknown subcommand: {}\n", command);
             println!("{}", CLI_HELP);
@@ -90,7 +95,7 @@ Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 See `cargo metadata --help` for a list of flags it supports.
 
-TODO: schema";
+The JSON schema definition is as follows:";
 
 const UPDATE_HELP: &str = "Download the latest daily dump from crates.io to speed up other commands
 
