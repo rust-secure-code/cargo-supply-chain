@@ -2,8 +2,9 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
+use std::iter::FromIterator;
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     fs,
     io::{self, ErrorKind},
     path::PathBuf,
@@ -180,6 +181,7 @@ impl CratesCache {
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
         let mut meta: Option<Metadata> = None;
+        let mut updated_files: BTreeSet<&'static str> = BTreeSet::new();
 
         let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
         for file in archive.entries()? {
@@ -197,6 +199,7 @@ impl CratesCache {
                         owners.as_slice(),
                         &|owner| owner.crate_id,
                     )?;
+                    updated_files.insert(Self::CRATE_OWNERS_FS);
                 } else if entry.path_bytes().ends_with(b"crates.csv") {
                     let crates: Vec<Crate> = read_csv_data(entry)?;
                     cache.store_map(
@@ -205,6 +208,7 @@ impl CratesCache {
                         crates.as_slice(),
                         &|crate_| crate_.name.clone(),
                     )?;
+                    updated_files.insert(Self::CRATES_FS);
                 } else if entry.path_bytes().ends_with(b"users.csv") {
                     let users: Vec<User> = read_csv_data(entry)?;
                     cache.store_map(
@@ -213,6 +217,7 @@ impl CratesCache {
                         users.as_slice(),
                         &|user| user.id,
                     )?;
+                    updated_files.insert(Self::USERS_FS);
                 } else if entry.path_bytes().ends_with(b"teams.csv") {
                     let teams: Vec<Team> = read_csv_data(entry)?;
                     cache.store_map(
@@ -221,16 +226,34 @@ impl CratesCache {
                         teams.as_slice(),
                         &|team| team.id,
                     )?;
+                    updated_files.insert(Self::TEAMS_FS);
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
                     meta = Some(serde_json::from_reader(entry)?);
                     // We will only commit the metadata to cache once the entire cache is updated.
+                } else {
+                    // This is a file we don't use. Check if we've downloaded everything we need.
+                    // If yes, we can stop the download here.
+                    let required_files: BTreeSet<&'static str> = BTreeSet::from_iter(
+                        // This is a Vec because consuming iterators for arrays were added very recently
+                        vec![
+                            Self::CRATE_OWNERS_FS,
+                            Self::CRATES_FS,
+                            Self::USERS_FS,
+                            Self::TEAMS_FS,
+                        ]
+                        .into_iter(),
+                    );
+                    if updated_files.is_superset(&required_files) && meta.is_some() {
+                        break;
+                    }
                 }
             }
         }
 
         // Now that we've downloaded the entire thing, commit the metadata that contains the timestamp.
         // If we do it earlier, it's possible to have a partially updated cache that's considered fresh.
-        let meta = meta.expect("The crates.io daily dump did not contain the 'metadata.json' file!");
+        let meta =
+            meta.expect("The crates.io daily dump did not contain the 'metadata.json' file!");
         cache.store(
             &mut self.metadata,
             Self::METADATA_FS,
@@ -239,6 +262,7 @@ impl CratesCache {
                 etag: etag.clone(),
             },
         )?;
+        updated_files.insert(Self::METADATA_FS);
 
         // If we get here, we had no etag or the etag mismatched or we forced a download due to
         // stale data. Catch the last as it means the crates.io daily dumps were not updated.
