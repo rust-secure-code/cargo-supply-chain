@@ -2,10 +2,12 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
+use std::iter::FromIterator;
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     fs,
     io::{self, ErrorKind},
+    mem,
     path::PathBuf,
     time::Duration,
     time::SystemTimeError,
@@ -132,9 +134,6 @@ impl CratesCache {
             )
             .with_message("preparing");
 
-        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
-        cache.validate_file_creation()?;
-
         let remembered_etag;
         let response = {
             let mut request = client.get(Self::DUMP_URL);
@@ -180,7 +179,19 @@ impl CratesCache {
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
-        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
+        let cache_dir = CratesCache::cache_dir().ok_or(ErrorKind::NotFound)?;
+        let mut cache_updater = CacheUpdater::new(cache_dir)?;
+        let required_files = BTreeSet::from_iter(
+            [
+                Self::CRATE_OWNERS_FS,
+                Self::CRATES_FS,
+                Self::USERS_FS,
+                Self::TEAMS_FS,
+                Self::METADATA_FS,
+            ]
+            .iter()
+            .map(|x| x.to_string()),
+        );
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if let Ok(path) = entry.path() {
@@ -190,7 +201,7 @@ impl CratesCache {
                 }
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
                     let owners: Vec<CrateOwner> = read_csv_data(entry)?;
-                    cache.store_multi_map(
+                    cache_updater.store_multi_map(
                         &mut self.crate_owners,
                         Self::CRATE_OWNERS_FS,
                         owners.as_slice(),
@@ -198,7 +209,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"crates.csv") {
                     let crates: Vec<Crate> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.crates,
                         Self::CRATES_FS,
                         crates.as_slice(),
@@ -206,7 +217,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"users.csv") {
                     let users: Vec<User> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.users,
                         Self::USERS_FS,
                         users.as_slice(),
@@ -214,7 +225,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"teams.csv") {
                     let teams: Vec<Team> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.teams,
                         Self::TEAMS_FS,
                         teams.as_slice(),
@@ -222,7 +233,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
                     let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache.store(
+                    cache_updater.store(
                         &mut self.metadata,
                         Self::METADATA_FS,
                         MetadataStored {
@@ -230,9 +241,20 @@ impl CratesCache {
                             etag: etag.clone(),
                         },
                     )?;
+                } else {
+                    // This was not a file with a filename we actually use.
+                    // Check if we've obtained all the files we need.
+                    // If yes, we can end the download early.
+                    // This saves hundreds of megabytes of traffic.
+                    if required_files.is_subset(&cache_updater.staged_files) {
+                        break;
+                    }
                 }
             }
         }
+        // Now that we've successfully downloaded and stored everything,
+        // replace the old cache contents with the new one.
+        cache_updater.commit()?;
 
         // If we get here, we had no etag or the etag mismatched or we forced a download due to
         // stale data. Catch the last as it means the crates.io daily dumps were not updated.
@@ -383,19 +405,6 @@ impl MetadataStored {
 }
 
 impl CacheDir {
-    fn validate_file_creation(&self) -> Result<(), io::Error> {
-        if !self.0.exists() {
-            fs::create_dir_all(&self.0)?;
-        }
-
-        if !self.0.is_dir() {
-            // Well. We certainly don't want to delete anything.
-            return Err(io::ErrorKind::AlreadyExists.into());
-        }
-
-        Ok(())
-    }
-
     fn load_cached<'cache, T>(
         &self,
         cache: &'cache mut Option<T>,
@@ -414,22 +423,73 @@ impl CacheDir {
             }
         }
     }
+}
 
-    fn store<T>(&self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
+/// Implements a two-phase transactional update mechanism:
+/// you can store data, but it will not overwrite previous data until you call `commit()`
+struct CacheUpdater {
+    dir: PathBuf,
+    staged_files: BTreeSet<String>,
+}
+
+/// Creates the cache directory if it doesn't exist.
+/// Returns an error if creation fails.
+impl CacheUpdater {
+    fn new(dir: PathBuf) -> Result<Self, io::Error> {
+        if !dir.exists() {
+            fs::create_dir_all(&dir)?;
+        }
+
+        if !dir.is_dir() {
+            // Well. We certainly don't want to delete anything.
+            return Err(io::ErrorKind::AlreadyExists.into());
+        }
+
+        Ok(Self {
+            dir,
+            staged_files: BTreeSet::new(),
+        })
+    }
+
+    /// Commits to disk any changes that you have staged via the `store()` function.
+    fn commit(&mut self) -> io::Result<()> {
+        let mut uncommitted_files = mem::replace(&mut self.staged_files, BTreeSet::new());
+        let metadata_file = uncommitted_files.take(CratesCache::METADATA_FS);
+        for file in uncommitted_files {
+            let source = self.dir.join(&file).with_extension("part");
+            let destination = self.dir.join(&file);
+            fs::rename(source, destination)?;
+        }
+        // metadata_file is special since it contains the timestamp for the cache.
+        // We will only commit it and update the timestamp if updating everything else succeeds.
+        // Otherwise it would be possible to create a partially updated cache that's considered fresh.
+        if let Some(file) = metadata_file {
+            let source = self.dir.join(&file).with_extension("part");
+            let destination = self.dir.join(&file);
+            fs::rename(source, destination)?;
+        }
+        Ok(())
+    }
+
+    /// Does not overwrite existing data until `commit()` is called.
+    /// If you do not call `commit()` after this, the on-disk cache will not be actually updated!
+    fn store<T>(&mut self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
     where
         T: Serialize,
     {
         *cache = None;
         let value = cache.get_or_insert(value);
 
-        let out_file = fs::File::create(self.0.join(file))?;
+        self.staged_files.insert(file.to_owned());
+        let out_path = self.dir.join(file).with_extension("part");
+        let out_file = fs::File::create(out_path)?;
         let out = io::BufWriter::new(out_file);
         serde_json::to_writer(out, value)?;
         Ok(())
     }
 
     fn store_map<T, K>(
-        &self,
+        &mut self,
         cache: &mut Option<HashMap<K, T>>,
         file: &str,
         entries: &[T],
@@ -447,7 +507,7 @@ impl CacheDir {
     }
 
     fn store_multi_map<T, K>(
-        &self,
+        &mut self,
         cache: &mut Option<HashMap<K, Vec<T>>>,
         file: &str,
         entries: &[T],
