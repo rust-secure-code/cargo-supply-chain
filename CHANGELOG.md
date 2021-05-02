@@ -1,7 +1,10 @@
 ## Unreleased
 
-- Added a detailed progress bar to the `update` subcommand using `indicatif`
 - Added `json` subcommand providing structured output and more details
+- Reduced the required download size for `update` subcommand from ~350Mb to ~60Mb
+- Added a detailed progress bar to the `update` subcommand using `indicatif`
+- Replaced ad-hoc progress reporting with a progress bar when fetching data from crates.io API
+- Fixed interrupted `update` subcommand considering its cache to be fresh
 - The list of crates in the output of `publishers` subcommand is now sorted
 
 ## v0.1.2 (2021-02-24)
