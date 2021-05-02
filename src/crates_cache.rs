@@ -2,7 +2,15 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
-use std::{collections::{BTreeSet, HashMap}, fs, io::{self, ErrorKind}, mem, path::PathBuf, time::Duration, time::SystemTimeError};
+use std::{
+    collections::{BTreeSet, HashMap},
+    fs,
+    io::{self, ErrorKind},
+    mem,
+    path::PathBuf,
+    time::Duration,
+    time::SystemTimeError,
+};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -425,10 +433,19 @@ impl CacheUpdater {
 
     /// Commits to disk any changes that you have staged via the `store()` function.
     fn commit(&mut self) -> io::Result<()> {
-        let uncommitted_files = mem::replace(&mut self.staged_files, BTreeSet::new());
+        let mut uncommitted_files = mem::replace(&mut self.staged_files, BTreeSet::new());
+        let metadata_file = uncommitted_files.take(CratesCache::METADATA_FS);
         for file in uncommitted_files {
-            let source = self.dir.join(file).with_extension("part");
-            let destination = source.with_extension("json");
+            let source = self.dir.join(&file).with_extension("part");
+            let destination = self.dir.join(&file);
+            fs::rename(source, destination)?;
+        }
+        // metadata_file is special since it contains the timestamp for the cache.
+        // We will only commit it and update the timestamp if updating everything else succeeds.
+        // Otherwise it would be possible to create a partially updated cache that's considered fresh.
+        if let Some(file) = metadata_file {
+            let source = self.dir.join(&file).with_extension("part");
+            let destination = self.dir.join(&file);
             fs::rename(source, destination)?;
         }
         Ok(())
