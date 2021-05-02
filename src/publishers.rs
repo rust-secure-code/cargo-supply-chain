@@ -135,6 +135,8 @@ pub fn fetch_owners_of_crates(
         CacheState::Expired => {
             eprintln!(
                 "\nIgnoring expired cache, older than {}.",
+                // we use humantime rather than indicatif because we take humantime input
+                // and here we simply repeat it back to the user
                 humantime::format_duration(max_age)
             );
             eprintln!("  Run `cargo supply-chain update` to update it.");
@@ -150,38 +152,36 @@ pub fn fetch_owners_of_crates(
     let mut teams: BTreeMap<String, Vec<PublisherData>> = BTreeMap::new();
 
     if using_cache {
-        match cached.age() {
-            Some(age) => eprintln!(
-                "\nUsing cached data. Cache age: {}",
-                humantime::format_duration(age)
-            ),
-            None => unreachable!(),
-        }
+        let age = cached.age().unwrap();
+        eprintln!(
+            "\nUsing cached data. Cache age: {}",
+            indicatif::HumanDuration(age)
+        );
     } else {
         eprintln!("\nFetching publisher info from crates.io");
         eprintln!("This will take roughly 2 seconds per crate due to API rate limits");
     }
-    for (ind, crate_name) in crates_io_names.iter().enumerate() {
+
+    let bar = indicatif::ProgressBar::new(crates_io_names.len() as u64)
+    .with_prefix("Preparing")
+    .with_style(
+        indicatif::ProgressStyle::default_bar()
+        .template("{prefix:>12.bright.cyan} [{bar:27}] {pos:>4}/{len:4} ETA {eta:3} - {msg:.cyan}")
+        .progress_chars("=> ")
+    );
+
+    for (i, crate_name) in crates_io_names.iter().enumerate() {
+        bar.set_message(crate_name.clone());
+        bar.set_position((i + 1) as u64);
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
         if let (Some(pub_users), Some(pub_teams)) = (cached_users, cached_teams) {
-            // Progress output for downloading crates was meant as a progress bar.
-            // We don't need it for cache, since it's fast anyway.
-            // eprintln!(
-            //     "Using cached data for \"{}\" ({}/{})",
-            //     crate_name,
-            //     i,
-            //     crates_io_names.len()
-            // );
+            bar.set_prefix("Loading cache");
             users.insert(crate_name.clone(), pub_users);
             teams.insert(crate_name.clone(), pub_teams);
         } else {
-            eprintln!(
-                "Fetching data for \"{}\" ({}/{})",
-                crate_name,
-                ind + 1,
-                crates_io_names.len()
-            );
+            // Handle crates not found in the cache by fetching live data for them
+            bar.set_prefix("Downloading");
             let pusers = publisher_users(&mut client, crate_name)?;
             users.insert(crate_name.clone(), pusers);
             let pteams = publisher_teams(&mut client, crate_name)?;
