@@ -135,6 +135,8 @@ pub fn fetch_owners_of_crates(
         CacheState::Expired => {
             eprintln!(
                 "\nIgnoring expired cache, older than {}.",
+                // we use humantime rather than indicatif because we take humantime input
+                // and here we simply repeat it back to the user
                 humantime::format_duration(max_age)
             );
             eprintln!("  Run `cargo supply-chain update` to update it.");
@@ -153,7 +155,7 @@ pub fn fetch_owners_of_crates(
         let age = cached.age().unwrap();
         eprintln!(
             "\nUsing cached data. Cache age: {}",
-            humantime::format_duration(age)
+            indicatif::HumanDuration(age)
         );
     } else {
         eprintln!("\nFetching publisher info from crates.io");
