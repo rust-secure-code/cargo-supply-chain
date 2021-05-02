@@ -2,14 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeSet, HashMap},
-    fs,
-    io::{self, ErrorKind},
-    path::PathBuf,
-    time::Duration,
-    time::SystemTimeError,
-};
+use std::{collections::{BTreeSet, HashMap}, fs, io::{self, ErrorKind}, mem, path::PathBuf, time::Duration, time::SystemTimeError};
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -231,6 +224,9 @@ impl CratesCache {
                 }
             }
         }
+        // Now that we've successfully downloaded and stored everything,
+        // replace the old cache stated with the new one.
+        cache_updater.commit()?;
 
         // If we get here, we had no etag or the etag mismatched or we forced a download due to
         // stale data. Catch the last as it means the crates.io daily dumps were not updated.
@@ -405,7 +401,7 @@ impl CacheDir {
 /// you can store data, but it will not overwrite previous data until you call `commit()`
 struct CacheUpdater {
     dir: PathBuf,
-    uncommitted_files: BTreeSet<String>,
+    staged_files: BTreeSet<String>,
 }
 
 /// Creates the cache directory if it doesn't exist.
@@ -423,14 +419,23 @@ impl CacheUpdater {
 
         Ok(Self {
             dir,
-            uncommitted_files: BTreeSet::new(),
+            staged_files: BTreeSet::new(),
         })
     }
 
-    fn commit() {
-        todo!();
+    /// Commits to disk any changes that you have staged via the `store()` function.
+    fn commit(&mut self) -> io::Result<()> {
+        let uncommitted_files = mem::replace(&mut self.staged_files, BTreeSet::new());
+        for file in uncommitted_files {
+            let source = self.dir.join(file).with_extension("part");
+            let destination = source.with_extension("json");
+            fs::rename(source, destination)?;
+        }
+        Ok(())
     }
 
+    /// Does not overwrite existing data until `commit()` is called.
+    /// If you do not call `commit()` after this, the on-disk cache will not be actually updated!
     fn store<T>(&mut self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
     where
         T: Serialize,
@@ -438,7 +443,9 @@ impl CacheUpdater {
         *cache = None;
         let value = cache.get_or_insert(value);
 
-        let out_file = fs::File::create(self.dir.join(file))?;
+        self.staged_files.insert(file.to_owned());
+        let out_path = self.dir.join(file).with_extension("part");
+        let out_file = fs::File::create(out_path)?;
         let out = io::BufWriter::new(out_file);
         serde_json::to_writer(out, value)?;
         Ok(())
