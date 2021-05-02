@@ -172,7 +172,7 @@ pub fn fetch_owners_of_crates(
 
     for (i, crate_name) in crates_io_names.iter().enumerate() {
         bar.set_message(crate_name.clone());
-        bar.set_position((i+1) as u64);
+        bar.set_position((i + 1) as u64);
         let cached_users = cached.publisher_users(crate_name);
         let cached_teams = cached.publisher_teams(crate_name);
         if let (Some(pub_users), Some(pub_teams)) = (cached_users, cached_teams) {
