@@ -3,7 +3,7 @@ use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     fs,
     io::{self, ErrorKind},
     path::PathBuf,
@@ -132,9 +132,6 @@ impl CratesCache {
             )
             .with_message("preparing");
 
-        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
-        cache.validate_file_creation()?;
-
         let remembered_etag;
         let response = {
             let mut request = client.get(Self::DUMP_URL);
@@ -180,7 +177,8 @@ impl CratesCache {
         let ungzip = GzDecoder::new(reader);
         let mut archive = tar::Archive::new(ungzip);
 
-        let cache = self.cache_dir.as_ref().ok_or(ErrorKind::NotFound)?;
+        let cache_dir = CratesCache::cache_dir().ok_or(ErrorKind::NotFound)?;
+        let mut cache_updater = CacheUpdater::new(cache_dir)?;
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if let Ok(path) = entry.path() {
@@ -190,7 +188,7 @@ impl CratesCache {
                 }
                 if entry.path_bytes().ends_with(b"crate_owners.csv") {
                     let owners: Vec<CrateOwner> = read_csv_data(entry)?;
-                    cache.store_multi_map(
+                    cache_updater.store_multi_map(
                         &mut self.crate_owners,
                         Self::CRATE_OWNERS_FS,
                         owners.as_slice(),
@@ -198,7 +196,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"crates.csv") {
                     let crates: Vec<Crate> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.crates,
                         Self::CRATES_FS,
                         crates.as_slice(),
@@ -206,7 +204,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"users.csv") {
                     let users: Vec<User> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.users,
                         Self::USERS_FS,
                         users.as_slice(),
@@ -214,7 +212,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"teams.csv") {
                     let teams: Vec<Team> = read_csv_data(entry)?;
-                    cache.store_map(
+                    cache_updater.store_map(
                         &mut self.teams,
                         Self::TEAMS_FS,
                         teams.as_slice(),
@@ -222,7 +220,7 @@ impl CratesCache {
                     )?;
                 } else if entry.path_bytes().ends_with(b"metadata.json") {
                     let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache.store(
+                    cache_updater.store(
                         &mut self.metadata,
                         Self::METADATA_FS,
                         MetadataStored {
@@ -383,19 +381,6 @@ impl MetadataStored {
 }
 
 impl CacheDir {
-    fn validate_file_creation(&self) -> Result<(), io::Error> {
-        if !self.0.exists() {
-            fs::create_dir_all(&self.0)?;
-        }
-
-        if !self.0.is_dir() {
-            // Well. We certainly don't want to delete anything.
-            return Err(io::ErrorKind::AlreadyExists.into());
-        }
-
-        Ok(())
-    }
-
     fn load_cached<'cache, T>(
         &self,
         cache: &'cache mut Option<T>,
@@ -414,22 +399,53 @@ impl CacheDir {
             }
         }
     }
+}
 
-    fn store<T>(&self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
+/// Implements a two-phase transactional update mechanism:
+/// you can store data, but it will not overwrite previous data until you call `commit()`
+struct CacheUpdater {
+    dir: PathBuf,
+    uncommitted_files: BTreeSet<String>,
+}
+
+/// Creates the cache directory if it doesn't exist.
+/// Returns an error if creation fails.
+impl CacheUpdater {
+    fn new(dir: PathBuf) -> Result<Self, io::Error> {
+        if !dir.exists() {
+            fs::create_dir_all(&dir)?;
+        }
+
+        if !dir.is_dir() {
+            // Well. We certainly don't want to delete anything.
+            return Err(io::ErrorKind::AlreadyExists.into());
+        }
+
+        Ok(Self {
+            dir,
+            uncommitted_files: BTreeSet::new(),
+        })
+    }
+
+    fn commit() {
+        todo!();
+    }
+
+    fn store<T>(&mut self, cache: &mut Option<T>, file: &str, value: T) -> Result<(), io::Error>
     where
         T: Serialize,
     {
         *cache = None;
         let value = cache.get_or_insert(value);
 
-        let out_file = fs::File::create(self.0.join(file))?;
+        let out_file = fs::File::create(self.dir.join(file))?;
         let out = io::BufWriter::new(out_file);
         serde_json::to_writer(out, value)?;
         Ok(())
     }
 
     fn store_map<T, K>(
-        &self,
+        &mut self,
         cache: &mut Option<HashMap<K, T>>,
         file: &str,
         entries: &[T],
@@ -447,7 +463,7 @@ impl CacheDir {
     }
 
     fn store_multi_map<T, K>(
-        &self,
+        &mut self,
         cache: &mut Option<HashMap<K, Vec<T>>>,
         file: &str,
         entries: &[T],
