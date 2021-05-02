@@ -187,6 +187,7 @@ impl CratesCache {
                 Self::CRATES_FS,
                 Self::USERS_FS,
                 Self::TEAMS_FS,
+                Self::METADATA_FS,
             ]
             .iter()
             .map(|x| x.to_string()),
