@@ -233,7 +233,7 @@ impl CratesCache {
             }
         }
         // Now that we've successfully downloaded and stored everything,
-        // replace the old cache stated with the new one.
+        // replace the old cache contents with the new one.
         cache_updater.commit()?;
 
         // If we get here, we had no etag or the etag mismatched or we forced a download due to
