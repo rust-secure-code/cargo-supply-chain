@@ -2,6 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
+use std::iter::FromIterator;
 use std::{
     collections::{BTreeSet, HashMap},
     fs,
@@ -11,7 +12,6 @@ use std::{
     time::Duration,
     time::SystemTimeError,
 };
-use std::iter::FromIterator;
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -181,12 +181,16 @@ impl CratesCache {
 
         let cache_dir = CratesCache::cache_dir().ok_or(ErrorKind::NotFound)?;
         let mut cache_updater = CacheUpdater::new(cache_dir)?;
-        let required_files = BTreeSet::from_iter([
-            Self::CRATE_OWNERS_FS,
-            Self::CRATES_FS,
-            Self::USERS_FS,
-            Self::TEAMS_FS,
-        ].iter().map(|x| x.to_string()));
+        let required_files = BTreeSet::from_iter(
+            [
+                Self::CRATE_OWNERS_FS,
+                Self::CRATES_FS,
+                Self::USERS_FS,
+                Self::TEAMS_FS,
+            ]
+            .iter()
+            .map(|x| x.to_string()),
+        );
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if let Ok(path) = entry.path() {
