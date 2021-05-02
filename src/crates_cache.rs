@@ -11,6 +11,7 @@ use std::{
     time::Duration,
     time::SystemTimeError,
 };
+use std::iter::FromIterator;
 
 pub struct CratesCache {
     cache_dir: Option<CacheDir>,
@@ -180,6 +181,12 @@ impl CratesCache {
 
         let cache_dir = CratesCache::cache_dir().ok_or(ErrorKind::NotFound)?;
         let mut cache_updater = CacheUpdater::new(cache_dir)?;
+        let required_files = BTreeSet::from_iter([
+            Self::CRATE_OWNERS_FS,
+            Self::CRATES_FS,
+            Self::USERS_FS,
+            Self::TEAMS_FS,
+        ].iter().map(|x| x.to_string()));
         for file in archive.entries()? {
             if let Ok(entry) = file {
                 if let Ok(path) = entry.path() {
@@ -229,6 +236,14 @@ impl CratesCache {
                             etag: etag.clone(),
                         },
                     )?;
+                } else {
+                    // This was not a file with a filename we actually use.
+                    // Check if we've obtained all the files we need.
+                    // If yes, we can end the download early.
+                    // This saves hundreds of megabytes of traffic.
+                    if required_files.is_subset(&cache_updater.staged_files) {
+                        break;
+                    }
                 }
             }
         }
