@@ -3,8 +3,12 @@ use std::collections::BTreeMap;
 use crate::publishers::fetch_owners_of_crates;
 use crate::{common::*, publishers::PublisherData};
 
-pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
-    let dependencies = sourced_dependencies(args);
+pub fn publishers(
+    metadata_args: Vec<String>,
+    diffable: bool,
+    max_age: std::time::Duration,
+) -> Result<(), std::io::Error> {
+    let dependencies = sourced_dependencies(metadata_args);
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 

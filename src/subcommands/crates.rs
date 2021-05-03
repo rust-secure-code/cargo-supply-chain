@@ -1,8 +1,12 @@
 use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherKind};
 
-pub fn crates(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
-    let dependencies = sourced_dependencies(args);
+pub fn crates(
+    metadata_args: Vec<String>,
+    diffable: bool,
+    max_age: std::time::Duration,
+) -> Result<(), std::io::Error> {
+    let dependencies = sourced_dependencies(metadata_args);
     complain_about_non_crates_io_crates(&dependencies);
     let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 

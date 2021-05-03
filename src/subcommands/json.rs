@@ -21,27 +21,33 @@ pub struct NotAudited {
     foreign_crates: Vec<String>,
 }
 
-pub fn json(args: Vec<String>, max_age: std::time::Duration) -> Result<(), std::io::Error> {
+pub fn json(args: Vec<String>, diffable: bool, max_age: std::time::Duration) -> Result<(), std::io::Error> {
     let mut output = StructuredOutput::default();
     let dependencies = sourced_dependencies(args);
     // Report non-crates.io dependencies
     output.not_audited.local_crates = crate_names_from_source(&dependencies, PkgSource::Local);
     output.not_audited.foreign_crates = crate_names_from_source(&dependencies, PkgSource::Foreign);
+    output.not_audited.local_crates.sort_unstable();
+    output.not_audited.foreign_crates.sort_unstable();
     // Fetch list of owners and publishers
-    let (mut owners, mut publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
-    // Sort the vectors of publisher data so that users could diff the output.
-    // That's not a super common thing to do, but sorting is cheap, so why not.
-    for list in owners.values_mut().chain(publisher_teams.values_mut()) {
-        list.sort_unstable_by_key(|x| x.login.clone())
-    }
+    let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
     // Merge the two maps we received into one
     for (crate_name, publishers) in publisher_teams {
         owners.entry(crate_name).or_default().extend(publishers)
+    }
+    // Sort the vectors of publisher data. This helps when diffing the output,
+    // but we do it unconditionally because it's cheap and helps users pull less hair when debugging.
+    for list in owners.values_mut() {
+        list.sort_unstable_by_key(|x| x.id)
     }
     output.crates_io_crates = owners;
     // Print the result to stdout
     let stdout = std::io::stdout();
     let handle = stdout.lock();
-    serde_json::to_writer(handle, &output)?;
+    if diffable {
+        serde_json::to_writer_pretty(handle, &output)?;
+    } else {
+        serde_json::to_writer(handle, &output)?;
+    }
     Ok(())
 }

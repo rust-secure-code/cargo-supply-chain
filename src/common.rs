@@ -12,10 +12,10 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
+pub fn sourced_dependencies(metadata_args: Vec<String>) -> Vec<SourcedPackage> {
     let meta = MetadataCommand::new()
         .features(AllFeatures)
-        .other_options(extra_options)
+        .other_options(metadata_args)
         .exec()
         .unwrap();
 
