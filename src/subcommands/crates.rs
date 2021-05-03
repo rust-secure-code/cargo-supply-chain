@@ -17,7 +17,7 @@ pub fn crates(
     let mut ordered_owners: Vec<_> = owners.into_iter().collect();
     if diffable {
         // Sort alphabetically by crate name
-        ordered_owners.sort_unstable_by_key(|(name, _)| name.clone() );
+        ordered_owners.sort_unstable_by_key(|(name, _)| name.clone());
     } else {
         // Order by the number of owners, but put crates owned by teams first
         ordered_owners.sort_unstable_by_key(|(name, publishers)| {
