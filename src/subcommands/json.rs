@@ -21,7 +21,11 @@ pub struct NotAudited {
     foreign_crates: Vec<String>,
 }
 
-pub fn json(args: Vec<String>, diffable: bool, max_age: std::time::Duration) -> Result<(), std::io::Error> {
+pub fn json(
+    args: Vec<String>,
+    diffable: bool,
+    max_age: std::time::Duration,
+) -> Result<(), std::io::Error> {
     let mut output = StructuredOutput::default();
     let dependencies = sourced_dependencies(args);
     // Report non-crates.io dependencies
