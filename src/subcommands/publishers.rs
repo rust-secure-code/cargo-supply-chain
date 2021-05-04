@@ -32,17 +32,7 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
         let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
         for (i, (team, crates)) in map_for_display.iter().enumerate() {
             let crate_list = comma_separated_list(&crates);
-            if let Some(url) = &team.url {
-                println!(
-                    " {}. \"{}\" ({}) via crates: {}",
-                    i + 1,
-                    &team.login,
-                    url,
-                    crate_list
-                );
-            } else {
-                println!(" {}. \"{}\" via crates: {}", i + 1, &team.login, crate_list);
-            }
+            println!(" {}. \"{}\" via crates: {}", i + 1, &team.login, crate_list);
         }
         println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
     }
