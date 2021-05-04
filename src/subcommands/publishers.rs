@@ -34,7 +34,13 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
             let crate_list = comma_separated_list(&crates);
             if team.login.starts_with("github:") {
                 if let Some(org) = team.login.split(':').nth(1) {
-                    println!(" {}. \"{}\" (https://github.com/{}) via crates: {}", i + 1, &team.login, org, crate_list);
+                    println!(
+                        " {}. \"{}\" (https://github.com/{}) via crates: {}",
+                        i + 1,
+                        &team.login,
+                        org,
+                        crate_list
+                    );
                 }
             } else {
                 println!(" {}. \"{}\" via crates: {}", i + 1, &team.login, crate_list);
