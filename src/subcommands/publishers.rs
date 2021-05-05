@@ -32,12 +32,15 @@ pub fn publishers(args: Vec<String>, max_age: std::time::Duration) -> Result<(),
         let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
         for (i, (team, crates)) in map_for_display.iter().enumerate() {
             let crate_list = comma_separated_list(&crates);
-            if let Some(url) = &team.url {
+            if let (true, Some(org)) = (
+                team.login.starts_with("github:"),
+                team.login.split(':').nth(1),
+            ) {
                 println!(
-                    " {}. \"{}\" ({}) via crates: {}",
+                    " {}. \"{}\" (https://github.com/{}) via crates: {}",
                     i + 1,
                     &team.login,
-                    url,
+                    org,
                     crate_list
                 );
             } else {

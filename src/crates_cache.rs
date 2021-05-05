@@ -300,7 +300,6 @@ impl CratesCache {
                 Some(PublisherData {
                     id: user.id,
                     avatar: user.gh_avatar.clone(),
-                    url: None,
                     login: user.gh_login.clone(),
                     name: user.name.clone(),
                     kind: PublisherKind::user,
@@ -322,7 +321,6 @@ impl CratesCache {
                 Some(PublisherData {
                     id: team.id,
                     avatar: team.avatar.clone(),
-                    url: None,
                     login: team.login.clone(),
                     name: team.name.clone(),
                     kind: PublisherKind::team,
