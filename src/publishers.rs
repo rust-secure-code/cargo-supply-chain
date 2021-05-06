@@ -27,7 +27,9 @@ pub struct PublisherData {
     pub id: u64,
     pub login: String,
     pub kind: PublisherKind,
-    pub url: Option<String>,
+    // URL is disabled because it's present in API responses but not in DB dumps,
+    // so the output would vary inconsistent depending on data source
+    //pub url: Option<String>,
     /// Display name. It is NOT guaranteed to be unique!
     pub name: Option<String>,
     /// Avatar image URL
