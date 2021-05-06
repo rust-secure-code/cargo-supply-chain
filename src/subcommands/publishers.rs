@@ -31,7 +31,8 @@ pub fn publishers(
         }
         println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
         println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
-    } else if diffable { // empty map just means 0 loop iterations here
+    } else if diffable {
+        // empty map just means 0 loop iterations here
         let sorted_map = sort_transposed_map_for_diffing(user_to_crate_map);
         for (user, crates) in sorted_map.iter() {
             let crate_list = comma_separated_list(&crates);
@@ -105,8 +106,6 @@ fn sort_transposed_map_for_diffing(
     input: BTreeMap<PublisherData, Vec<String>>,
 ) -> Vec<(PublisherData, Vec<String>)> {
     let mut result: Vec<_> = input.into_iter().collect();
-    result.sort_unstable_by_key(|(publisher, _crates)| {
-        publisher.login.clone()
-    });
+    result.sort_unstable_by_key(|(publisher, _crates)| publisher.login.clone());
     result
 }
