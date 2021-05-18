@@ -1,5 +1,7 @@
+use crate::err_exit;
 use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
 use std::collections::HashMap;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PkgSource {
     Local,
@@ -13,11 +15,17 @@ pub struct SourcedPackage {
 }
 
 pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
-    let meta = MetadataCommand::new()
+    let meta = match MetadataCommand::new()
         .features(AllFeatures)
         .other_options(extra_options)
         .exec()
-        .unwrap();
+    {
+        Ok(v) => v,
+        Err(cargo_metadata::Error::CargoMetadata { stderr: _ }) => err_exit(
+            "Could not find Cargo.toml in current or parent directory, make sure your inside of a crate!",
+        ),
+        Err(_) => err_exit("Unknown error whilst fetching crate's metadata!"),
+    };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
     let what: HashMap<PackageId, Package> = meta

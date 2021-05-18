@@ -139,5 +139,13 @@ fn parse_args() -> Result<Args, pico_args::Error> {
 
 fn eprint_help() {
     eprintln!("{}", CLI_HELP);
-    std::process::exit(1);
+}
+
+pub(crate) fn err_exit<'a>(msg: impl Into<Option<&'a str>>) -> ! {
+    match msg.into() {
+        Some(v) => eprintln!("{}", v),
+        None => (),
+    };
+
+    std::process::exit(1)
 }

@@ -1,7 +1,6 @@
-//! Displays help infomation to the user when requested
+//! Displays help information to the user when requested
 
-use crate::subcommands::json::StructuredOutput;
-use crate::CLI_HELP;
+use crate::{err_exit, subcommands::json::StructuredOutput, CLI_HELP};
 use schemars::schema_for;
 use std::process;
 
@@ -18,11 +17,10 @@ pub fn help(command: Option<&str>) {
             println!("\n{}", serde_json::to_string_pretty(&schema).unwrap());
         }
         Some(command) => {
-            println!("Unknown subcommand: {}\n", command);
-            println!("{}", CLI_HELP);
-            process::exit(1)
+            err_exit(format!("Unknown subcommand: {}\n{}", command, CLI_HELP).as_str())
         }
     }
+
     process::exit(0)
 }
 
@@ -48,7 +46,7 @@ Any arguments after the `--` will be passed to `cargo metadata`, for example:
 See `cargo metadata --help` for a list of flags it supports.";
 
 const PUBLISHERS_HELP: &str =
-    "Lists all crates.io publishers in the depedency graph and owned crates for each
+    "Lists all crates.io publishers in the dependency graph and owned crates for each
 
 If a local cache created by 'update' subcommand is present and up to date,
 it will be used. Otherwise live data will be fetched from the crates.io API.
