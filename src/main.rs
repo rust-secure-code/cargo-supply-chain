@@ -35,6 +35,7 @@ Arguments:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
                    If not specified, the cache is considered valid for 48 hours.
+  -d, --diffable   Make output more friendly towards tools such as `diff`
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
@@ -44,6 +45,7 @@ See `cargo metadata --help` for a list of flags it supports.";
 struct Args {
     help: bool,
     command: String,
+    diffable: bool,
     cache_max_age: Duration,
     metadata_args: Vec<String>,
     free: Vec<String>,
@@ -75,9 +77,11 @@ fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
             eprint_help();
         }
         match args.command.as_str() {
-            "publishers" => subcommands::publishers(args.metadata_args, args.cache_max_age)?,
-            "crates" => subcommands::crates(args.metadata_args, args.cache_max_age)?,
-            "json" => subcommands::json(args.metadata_args, args.cache_max_age)?,
+            "publishers" => {
+                subcommands::publishers(args.metadata_args, args.diffable, args.cache_max_age)?
+            }
+            "crates" => subcommands::crates(args.metadata_args, args.diffable, args.cache_max_age)?,
+            "json" => subcommands::json(args.metadata_args, args.diffable, args.cache_max_age)?,
             "update" => subcommands::update(args.cache_max_age),
             "help" => subcommands::help(args.free.get(0).map(String::as_str)),
             _ => eprint_help(),
@@ -122,6 +126,7 @@ fn parse_args() -> Result<Args, pico_args::Error> {
         let args = Args {
             help: args.contains(["-h", "--help"]),
             command,
+            diffable: args.contains(["-d", "--diffable"]),
             metadata_args,
             cache_max_age: args
                 .opt_value_from_fn("--cache-max-age", parse_max_age)?

@@ -40,6 +40,7 @@ OPTIONS:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
                    If not specified, the cache is considered valid for 48 hours.
+  -d, --diffable  Make output more friendly towards tools such as `diff`
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
@@ -62,6 +63,8 @@ OPTIONS:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
                    If not specified, the cache is considered valid for 48 hours.
+  -d, --diffable  Make output more friendly towards tools such as `diff`
+
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
@@ -85,6 +88,7 @@ OPTIONS:
   --cache-max-age  The cache will be considered valid while younger than specified.
                    The format is a human readable duration such as `1w` or `1d 6h`.
                    If not specified, the cache is considered valid for 48 hours.
+  -d, --diffable   Pretty-print the resulting JSON, making it easy to diff
 
 Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu

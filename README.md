@@ -10,28 +10,33 @@ Use cases include:
 
 ## Usage
 
-Run `cargo install cargo-supply-chain` to install this tool.
+To install this tool, please run the following command:
 
-Once installed, simply navigate to your project and run `cargo supply-chain` followed by a subcommand, e.g. `cargo supply-chain publishers`
-
-### Subcommands
-
-- `publishers` - Lists all the people and teams that can publish updates to your dependencies on crates.io.
-- `crates` - Lists all the crates you depend on, with the list of publishers for each crate.
-- `update` - Downloads a daily database dump of crates.io (roughly 256Mb) to speed up `publishers` and `crates` subcommands. Data downloaded this way may be out of date by up to 48 hours. You can set the maximum allowed age using the `--cache-max-age` flag; if it's exceeded, live data will be fetched instead.
-- `help` - Displays detailed help for a specific command.
-
-### Filtering
-
-Any arguments specified after `--` will be passed to `cargo metadata`, for example:
-
-```none
-cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
+```shell
+cargo install cargo-supply-chain
 ```
 
-This will only include dependencies that are used when compiling for `x86_64-unknown-linux-gnu` and ignore crates that are not used on this platform (e.g. `winapi`, `web-sys`).
+Once installed, simply navigate to your project and run `cargo supply-chain` to start. Here's a list of possible subcommands and arguments which you may use:
 
+```none
+Commands:
+  publishers   List all crates.io publishers in the depedency graph
+  crates       List all crates in dependency graph and crates.io publishers for each
+  json         Like 'crates', but in JSON and with more fields for each publisher
+  update       Download the latest daily dump from crates.io to speed up other commands
+
+See 'cargo supply-chain help <command>' for more information on a specific command.
+
+Arguments:
+  --cache-max-age  The cache will be considered valid while younger than specified.
+                   The format is a human readable duration such as `1w` or `1d 6h`.
+                   If not specified, the cache is considered valid for 48 hours.
+  -d, --diffable   Make output more friendly towards tools such as `diff`
+
+Any arguments after the `--` will be passed to `cargo metadata`, for example:
+  cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 See `cargo metadata --help` for a list of flags it supports.
+```
 
 ## License
 
