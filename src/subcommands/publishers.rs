@@ -29,8 +29,8 @@ pub fn publishers(
             let crate_list = comma_separated_list(&crates);
             println!(" {}. {} via crates: {}", i + 1, &user.login, crate_list);
         }
-        println!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
-        println!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
+        eprintln!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
+        eprintln!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
     } else if diffable {
         // empty map just means 0 loop iterations here
         let sorted_map = sort_transposed_map_for_diffing(user_to_crate_map);
@@ -62,7 +62,7 @@ pub fn publishers(
                 println!(" {}. \"{}\" via crates: {}", i + 1, &team.login, crate_list);
             }
         }
-        println!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
+        eprintln!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
     } else if diffable {
         let sorted_map = sort_transposed_map_for_diffing(team_to_crate_map);
         for (team, crates) in sorted_map.iter() {
