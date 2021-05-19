@@ -20,7 +20,14 @@ pub fn publishers(
     user_to_crate_map.values_mut().for_each(|c| c.sort());
     team_to_crate_map.values_mut().for_each(|c| c.sort());
 
-    if !publisher_users.is_empty() && !diffable {
+    if diffable {
+        // empty map just means 0 loop iterations here
+        let sorted_map = sort_transposed_map_for_diffing(user_to_crate_map);
+        for (user, crates) in sorted_map.iter() {
+            let crate_list = comma_separated_list(&crates);
+            println!("user \"{}\": {}", &user.login, crate_list);
+        }
+    } else if !publisher_users.is_empty() {
         println!("\nThe following individuals can publish updates for your dependencies:\n");
         let map_for_display = sort_transposed_map_for_display(user_to_crate_map);
         for (i, (user, crates)) in map_for_display.iter().enumerate() {
@@ -31,16 +38,15 @@ pub fn publishers(
         }
         eprintln!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
         eprintln!("See https://github.com/rust-lang/crates.io/issues/2868 for more info.");
-    } else if diffable {
-        // empty map just means 0 loop iterations here
-        let sorted_map = sort_transposed_map_for_diffing(user_to_crate_map);
-        for (user, crates) in sorted_map.iter() {
-            let crate_list = comma_separated_list(&crates);
-            println!("user \"{}\": {}", &user.login, crate_list);
-        }
     }
 
-    if !publisher_teams.is_empty() && !diffable {
+    if diffable {
+        let sorted_map = sort_transposed_map_for_diffing(team_to_crate_map);
+        for (team, crates) in sorted_map.iter() {
+            let crate_list = comma_separated_list(&crates);
+            println!("team \"{}\": {}", &team.login, crate_list);
+        }
+    } else if !publisher_teams.is_empty() {
         println!(
             "\nAll members of the following teams can publish updates for your dependencies:\n"
         );
@@ -63,12 +69,6 @@ pub fn publishers(
             }
         }
         eprintln!("\nGithub teams are black boxes. It's impossible to get the member list without explicit permission.");
-    } else if diffable {
-        let sorted_map = sort_transposed_map_for_diffing(team_to_crate_map);
-        for (team, crates) in sorted_map.iter() {
-            let crate_list = comma_separated_list(&crates);
-            println!("team \"{}\": {}", &team.login, crate_list);
-        }
     }
     Ok(())
 }
