@@ -14,7 +14,7 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
+pub fn sourced_dependencies(metadata_args: Vec<String>) -> Vec<SourcedPackage> {
     let meta = match MetadataCommand::new()
         .features(AllFeatures)
         .other_options(metadata_args)
