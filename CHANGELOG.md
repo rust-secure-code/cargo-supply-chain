@@ -6,6 +6,7 @@
 - Added a detailed progress bar to all subcommands using `indicatif`
 - Fixed interrupted `update` subcommand considering its cache to be fresh.
   Other subcommands were not affected and would simply fetch live data.
+- If a call to `cargo metadata` fails, show an error instead of panicking
 - The list of crates in the output of `publishers` subcommand is now sorted
 
 ## v0.1.2 (2021-02-24)
