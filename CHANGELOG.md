@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Added `json` subcommand providing structured output and more details
+- Added `-d`, `--diffable` flag for diff-friendly output mode to all subcommands
 - Reduced the required download size for `update` subcommand from ~350Mb to ~60Mb
 - Added a detailed progress bar to the `update` subcommand using `indicatif`
 - Replaced ad-hoc progress reporting with a progress bar when fetching data from crates.io API
