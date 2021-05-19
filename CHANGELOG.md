@@ -3,8 +3,7 @@
 - Added `json` subcommand providing structured output and more details
 - Added `-d`, `--diffable` flag for diff-friendly output mode to all subcommands
 - Reduced the required download size for `update` subcommand from ~350Mb to ~60Mb
-- Added a detailed progress bar to the `update` subcommand using `indicatif`
-- Replaced ad-hoc progress reporting with a progress bar when fetching data from crates.io API
+- Added a detailed progress bar to all subcommands using `indicatif`
 - Fixed interrupted `update` subcommand considering its cache to be fresh.
   Other subcommands were not affected and would simply fetch live data.
 - The list of crates in the output of `publishers` subcommand is now sorted
