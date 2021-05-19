@@ -21,10 +21,8 @@ pub fn sourced_dependencies(metadata_args: Vec<String>) -> Vec<SourcedPackage> {
         .exec()
     {
         Ok(v) => v,
-        Err(cargo_metadata::Error::CargoMetadata { stderr: _ }) => err_exit(
-            "Could not find Cargo.toml in current or parent directory, make sure your inside of a crate!",
-        ),
-        Err(err) => err_exit(format!("Error whilst fetching crate's metadata!\n  {:?}", err).as_str()),
+        Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => err_exit(&e),
+        Err(err) => err_exit(format!("Failed to fetch crate metadata!\n  {}", err).as_str()),
     };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();

@@ -146,7 +146,8 @@ fn eprint_help() {
     eprintln!("{}", CLI_HELP);
 }
 
-pub(crate) fn err_exit<'a>(msg: impl Into<Option<&'a str>>) -> ! {
+// TODO: remove all uses of this and return error from the function instead
+pub(crate) fn err_exit(msg: &str) -> ! {
     match msg.into() {
         Some(v) => eprintln!("{}", v),
         None => (),
