@@ -12,10 +12,10 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(extra_options: Vec<String>) -> Vec<SourcedPackage> {
+pub fn sourced_dependencies(metadata_args: Vec<String>) -> Vec<SourcedPackage> {
     let meta = MetadataCommand::new()
         .features(AllFeatures)
-        .other_options(extra_options)
+        .other_options(metadata_args)
         .exec()
         .unwrap();
 
@@ -75,11 +75,11 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
         // scope bound to avoid accidentally referencing local crates when working with foreign ones
         let local_crate_names = crate_names_from_source(dependencies, PkgSource::Local);
         if !local_crate_names.is_empty() {
-            println!(
+            eprintln!(
                 "\nThe following crates will be ignored because they come from a local directory:"
             );
             for crate_name in &local_crate_names {
-                println!(" - {}", crate_name);
+                eprintln!(" - {}", crate_name);
             }
         }
     }
@@ -87,9 +87,9 @@ pub fn complain_about_non_crates_io_crates(dependencies: &[SourcedPackage]) {
     {
         let foreign_crate_names = crate_names_from_source(dependencies, PkgSource::Foreign);
         if !foreign_crate_names.is_empty() {
-            println!("\nCannot audit the following crates because they are not from crates.io:");
+            eprintln!("\nCannot audit the following crates because they are not from crates.io:");
             for crate_name in &foreign_crate_names {
-                println!(" - {}", crate_name);
+                eprintln!(" - {}", crate_name);
             }
         }
     }
