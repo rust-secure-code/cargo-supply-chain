@@ -1,4 +1,4 @@
-## Unreleased
+## v0.2.0 (2021-05-21)
 
 - Added `json` subcommand providing structured output and more details
 - Added `-d`, `--diffable` flag for diff-friendly output mode to all subcommands
