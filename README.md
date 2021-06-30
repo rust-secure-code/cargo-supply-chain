@@ -8,6 +8,8 @@ Use cases include:
 - Identify risks in your dependency graph.
 - An analysis of all the contributors you implicitly trust by building their software. This might have both a sobering and humbling effect.
 
+Sample output when run on itself: [`publishers`](https://gist.github.com/Shnatsel/3b7f7d331d944bb75b2f363d4b5fb43d), [`crates`](https://gist.github.com/Shnatsel/dc0ec81f6ad392b8967e8d3f2b1f5f80), [`json`](https://gist.github.com/Shnatsel/511ad1f87528c450157ef9ad09984745).
+
 ## Usage
 
 To install this tool, please run the following command:
@@ -37,8 +39,6 @@ Any arguments after the `--` will be passed to `cargo metadata`, for example:
   cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
 See `cargo metadata --help` for a list of flags it supports.
 ```
-
-Sample output when run on itself: [`publishers`](https://gist.github.com/Shnatsel/3b7f7d331d944bb75b2f363d4b5fb43d), [`crates`](https://gist.github.com/Shnatsel/dc0ec81f6ad392b8967e8d3f2b1f5f80), [`json`](https://gist.github.com/Shnatsel/511ad1f87528c450157ef9ad09984745).
 
 ## License
 
