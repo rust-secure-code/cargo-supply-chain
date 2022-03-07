@@ -9,7 +9,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::{ffi::OsString, time::Duration};
+use std::{error::Error, ffi::OsString, time::Duration};
 
 use pico_args::Arguments;
 
@@ -52,20 +52,17 @@ struct Args {
 }
 
 fn main() {
-    //FIXME Simplify and call eprint_help on more occasions
-    match parse_args() {
-        Ok(args) => match validate_args(args) {
-            Ok(args) => match dispatch_command(args) {
-                Ok(_) => (),
-                Err(e) => eprintln!("Error: {}", e),
-            },
-            Err(e) => eprintln!("Error: {}", e),
-        },
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            eprint_help();
-        }
+    if let Err(e) = handle_args() {
+        eprintln!("Error: {}", e);
+        eprint_help();
     }
+}
+
+fn handle_args() -> Result<(), Box<dyn Error>> {
+    let args = parse_args()?;
+    let valid_args = validate_args(args)?;
+    dispatch_command(valid_args)?;
+    Ok(())
 }
 
 enum ValidatedArgs {
