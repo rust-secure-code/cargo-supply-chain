@@ -51,13 +51,14 @@ struct Args {
     free: Vec<String>,
 }
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     match get_args() {
         Err(e) => {
             eprintln!("Error: {}", e);
             eprint_help();
+            std::process::exit(1);
         }
-        Ok(args) => dispatch_command(args).unwrap_or_else(|e| eprintln!("Error: {}", e)),
+        Ok(args) => dispatch_command(args),
     }
 }
 
