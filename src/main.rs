@@ -52,17 +52,19 @@ struct Args {
 }
 
 fn main() {
-    if let Err(e) = handle_args() {
-        eprintln!("Error: {}", e);
-        eprint_help();
+    match get_args() {
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            eprint_help();
+        }
+        Ok(args) => dispatch_command(args).unwrap_or_else(|e| eprintln!("Error: {}", e)),
     }
 }
 
-fn handle_args() -> Result<(), Box<dyn Error>> {
+fn get_args() -> Result<ValidatedArgs, Box<dyn Error>> {
     let args = parse_args()?;
     let valid_args = validate_args(args)?;
-    dispatch_command(valid_args)?;
-    Ok(())
+    Ok(valid_args)
 }
 
 enum ValidatedArgs {
