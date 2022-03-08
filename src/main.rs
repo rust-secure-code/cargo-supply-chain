@@ -9,7 +9,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::{ffi::OsString, time::Duration};
+use std::{error::Error, ffi::OsString, time::Duration};
 
 use pico_args::Arguments;
 
@@ -52,41 +52,120 @@ struct Args {
 }
 
 fn main() {
-    match parse_args() {
-        Ok(args) => match dispatch_command(args) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error: {}", e);
-            }
-        },
+    match get_args() {
         Err(e) => {
             eprintln!("Error: {}", e);
             eprint_help();
         }
+        Ok(args) => dispatch_command(args).unwrap_or_else(|e| eprintln!("Error: {}", e)),
     }
 }
 
-fn dispatch_command(args: Args) -> Result<(), std::io::Error> {
-    // FIXME: validating arguments and acting on them is lumped together in one function.
-    // This ugly and interferes with error handling and unit testing.
+fn get_args() -> Result<ValidatedArgs, Box<dyn Error>> {
+    let args = parse_args()?;
+    let valid_args = validate_args(args)?;
+    Ok(valid_args)
+}
+
+enum ValidatedArgs {
+    Publishers {
+        cache_max_age: Duration,
+        diffable: bool,
+        metadata_args: Vec<String>,
+    },
+    Crates {
+        cache_max_age: Duration,
+        diffable: bool,
+        metadata_args: Vec<String>,
+    },
+    Json {
+        cache_max_age: Duration,
+        diffable: bool,
+        metadata_args: Vec<String>,
+    },
+    Update {
+        cache_max_age: Duration,
+    },
+    Help {
+        command: Option<String>,
+    },
+}
+
+fn validate_args(args: Args) -> Result<ValidatedArgs, std::io::Error> {
     if args.help {
-        subcommands::help(Some(&args.command));
+        return Ok(ValidatedArgs::Help {
+            command: Some(args.command),
+        });
     } else {
         if args.command != "help" && !args.free.is_empty() {
-            eprintln!("Unrecognized argument: {}", args.free[0]);
-            eprint_help();
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Unrecognized argument: {}", args.free[0]),
+            ));
         }
         match args.command.as_str() {
             "publishers" => {
-                subcommands::publishers(args.metadata_args, args.diffable, args.cache_max_age)?
+                return Ok(ValidatedArgs::Publishers {
+                    cache_max_age: args.cache_max_age,
+                    diffable: args.diffable,
+                    metadata_args: args.metadata_args,
+                })
             }
-            "crates" => subcommands::crates(args.metadata_args, args.diffable, args.cache_max_age)?,
-            "json" => subcommands::json(args.metadata_args, args.diffable, args.cache_max_age)?,
-            "update" => subcommands::update(args.cache_max_age),
-            "help" => subcommands::help(args.free.get(0).map(String::as_str)),
-            _ => eprint_help(),
+            "crates" => {
+                return Ok(ValidatedArgs::Crates {
+                    cache_max_age: args.cache_max_age,
+                    diffable: args.diffable,
+                    metadata_args: args.metadata_args,
+                })
+            }
+            "json" => {
+                return Ok(ValidatedArgs::Json {
+                    cache_max_age: args.cache_max_age,
+                    diffable: args.diffable,
+                    metadata_args: args.metadata_args,
+                })
+            }
+            "update" => {
+                return Ok(ValidatedArgs::Update {
+                    cache_max_age: args.cache_max_age,
+                })
+            }
+            "help" => {
+                return Ok(ValidatedArgs::Help {
+                    command: args.free.get(0).map(String::to_owned),
+                })
+            }
+            _ => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Unrecognized argument: {}", args.command.as_str()),
+                ))
+            }
         }
     }
+}
+
+fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
+    match args {
+        ValidatedArgs::Publishers {
+            cache_max_age,
+            diffable,
+            metadata_args,
+        } => subcommands::publishers(metadata_args, diffable, cache_max_age)?,
+        ValidatedArgs::Crates {
+            cache_max_age,
+            diffable,
+            metadata_args,
+        } => subcommands::crates(metadata_args, diffable, cache_max_age)?,
+        ValidatedArgs::Json {
+            cache_max_age,
+            diffable,
+            metadata_args,
+        } => subcommands::json(metadata_args, diffable, cache_max_age)?,
+        ValidatedArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
+        ValidatedArgs::Help { command } => subcommands::help(command.as_deref()),
+    }
+
     Ok(())
 }
 
@@ -135,7 +214,6 @@ fn parse_args() -> Result<Args, pico_args::Error> {
         };
         Ok(args)
     } else {
-        eprint_help();
         Err(pico_args::Error::ArgumentParsingFailed {
             cause: "No subcommand given".to_string(),
         })
