@@ -1,8 +1,10 @@
 //! Displays help information to the user when requested
 
-use crate::{err_exit, subcommands::json::StructuredOutput, CLI_HELP};
+use crate::{err_exit, subcommands::json::StructuredOutput};
 use schemars::schema_for;
 use std::process;
+
+const CLI_HELP: &'static str = "foobar"; //TODO
 
 /// Provides help infomation which proceeds to exit
 pub fn help(command: Option<&str>) {
