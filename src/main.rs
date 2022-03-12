@@ -60,7 +60,7 @@ If not specified, the cache is considered valid for 48 hours.").fallback(Duratio
         cache_max_age, diffable, metadata_args 
     });
 
-    fn parser_builder(command_name: &'static str, args: Parser<QueryCommandArgs>, descr: &'static str) -> bpaf::Parser<ValidatedArgs>{
+    fn subcommand_with_common_args(command_name: &'static str, args: Parser<QueryCommandArgs>, descr: &'static str) -> bpaf::Parser<ValidatedArgs>{
         let parser = match command_name {
             "publishers" => construct!(ValidatedArgs::Publishers { args }),
             "crates" => construct!(ValidatedArgs::Crates { args }),
@@ -72,28 +72,10 @@ If not specified, the cache is considered valid for 48 hours.").fallback(Duratio
         .for_parser(parser);
         command(command_name, Some(descr), parser)
     }
-    let publishers = parser_builder("publishers", args_parser.clone(), "List all crates.io publishers in the depedency graph");
-    let crates = parser_builder("crates", args_parser.clone(), "List all crates.io publishers in the depedency graph");
-    let json = parser_builder("json", args_parser.clone(), "List all crates.io publishers in the depedency graph");
-    // let publishers = construct!(ValidatedArgs::Publishers { args });
-    // let publishers = Info::default()
-    //     .descr("List all crates.io publishers in the depedency graph")
-    //     .for_parser(publishers);
-    // let publishers = command("publishers", Some("List all crates.io publishers in the depedency graph"), publishers);
 
-    // let args = args_parser.clone();
-    // let crates = construct!(ValidatedArgs::Crates { args });
-    // let crates = Info::default()
-    //     .descr("List all crates in dependency graph and crates.io publishers for each")
-    //     .for_parser(crates);
-    // let crates = command("crates", Some("List all crates in dependency graph and crates.io publishers for each"), crates); 
-
-    // let args = args_parser.clone();
-    // let json =  construct!(ValidatedArgs::Json { args });
-    // let json = Info::default()
-    //     .descr("Like 'crates', but in JSON and with more fields for each publisher")
-    //     .for_parser(json);
-    // let json = command("json", Some("Like 'crates', but in JSON and with more fields for each publisher"), json); 
+    let publishers = subcommand_with_common_args("publishers", args_parser.clone(), "List all crates.io publishers in the depedency graph");
+    let crates = subcommand_with_common_args("crates", args_parser.clone(), "List all crates in dependency graph and crates.io publishers for each");
+    let json = subcommand_with_common_args("json", args_parser.clone(), "Like 'crates', but in JSON and with more fields for each publisher");
 
     let cache_max_age = cache_max_age_parser.clone();
     let update =  construct!(ValidatedArgs::Update { cache_max_age }) ;
@@ -107,7 +89,7 @@ If not specified, the cache is considered valid for 48 hours.").fallback(Duratio
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
     
     let opt = Info::default()
-    .descr("The stupid content tracker")
+    .descr("Gather author, contributor and publisher data on crates in your dependency graph")
     .for_parser(parser)
     .run();
 
