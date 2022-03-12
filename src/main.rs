@@ -8,13 +8,12 @@
 //! * Identify risks in your dependency graph.
 
 #![forbid(unsafe_code)]
-
 #![allow(dead_code)] // TODO
 
 use std::{error::Error, ffi::OsString, time::Duration};
 
-use pico_args::Arguments;
 use bpaf::*;
+use pico_args::Arguments;
 
 mod api_client;
 mod common;
@@ -34,8 +33,6 @@ and maybe also
  */
 
 fn main() -> Result<(), std::io::Error> {
-
-
     // match get_args() {
     //     Err(e) => {
     //         eprintln!("Error: {}", e);
@@ -49,52 +46,79 @@ fn main() -> Result<(), std::io::Error> {
 }
 
 fn parse_args_bpaf() {
-    let diffable = short('d').long("diffable").switch().help("Make output more friendly towards tools such as `diff`");
-    let cache_max_age_parser = long("cache_max_age").argument("AGE").parse(|text| humantime::parse_duration(&text)).help("\
+    let diffable = short('d')
+        .long("diffable")
+        .switch()
+        .help("Make output more friendly towards tools such as `diff`");
+    let cache_max_age_parser = long("cache_max_age")
+        .argument("AGE")
+        .parse(|text| humantime::parse_duration(&text))
+        .help(
+            "\
 The cache will be considered valid while younger than specified.
 The format is a human readable duration such as `1w` or `1d 6h`.
-If not specified, the cache is considered valid for 48 hours.").fallback(Duration::from_secs(48 * 3600));
+If not specified, the cache is considered valid for 48 hours.",
+        )
+        .fallback(Duration::from_secs(48 * 3600));
     let metadata_args = short('m').argument("ARGS").many();
     let cache_max_age = cache_max_age_parser.clone();
-    let args_parser = construct!(QueryCommandArgs{
-        cache_max_age, diffable, metadata_args 
+    let args_parser = construct!(QueryCommandArgs {
+        cache_max_age,
+        diffable,
+        metadata_args
     });
 
-    fn subcommand_with_common_args(command_name: &'static str, args: Parser<QueryCommandArgs>, descr: &'static str) -> bpaf::Parser<ValidatedArgs>{
+    fn subcommand_with_common_args(
+        command_name: &'static str,
+        args: Parser<QueryCommandArgs>,
+        descr: &'static str,
+    ) -> bpaf::Parser<ValidatedArgs> {
         let parser = match command_name {
             "publishers" => construct!(ValidatedArgs::Publishers { args }),
             "crates" => construct!(ValidatedArgs::Crates { args }),
             "json" => construct!(ValidatedArgs::Json { args }),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-        let parser = Info::default()
-        .descr(descr)
-        .for_parser(parser);
+        let parser = Info::default().descr(descr).for_parser(parser);
         command(command_name, Some(descr), parser)
     }
 
-    let publishers = subcommand_with_common_args("publishers", args_parser.clone(), "List all crates.io publishers in the depedency graph");
-    let crates = subcommand_with_common_args("crates", args_parser.clone(), "List all crates in dependency graph and crates.io publishers for each");
-    let json = subcommand_with_common_args("json", args_parser.clone(), "Like 'crates', but in JSON and with more fields for each publisher");
+    let publishers = subcommand_with_common_args(
+        "publishers",
+        args_parser.clone(),
+        "List all crates.io publishers in the depedency graph",
+    );
+    let crates = subcommand_with_common_args(
+        "crates",
+        args_parser.clone(),
+        "List all crates in dependency graph and crates.io publishers for each",
+    );
+    let json = subcommand_with_common_args(
+        "json",
+        args_parser.clone(),
+        "Like 'crates', but in JSON and with more fields for each publisher",
+    );
 
     let cache_max_age = cache_max_age_parser.clone();
-    let update =  construct!(ValidatedArgs::Update { cache_max_age }) ;
+    let update = construct!(ValidatedArgs::Update { cache_max_age });
     let update = Info::default()
         .descr("Download the latest daily dump from crates.io to speed up other commands")
         .for_parser(update);
-    let update = command("update", Some("Download the latest daily dump from crates.io to speed up other commands"), update);
+    let update = command(
+        "update",
+        Some("Download the latest daily dump from crates.io to speed up other commands"),
+        update,
+    );
 
-    
-    //let help =            construct!(ValidatedArgs::Help { command }); 
+    //let help =            construct!(ValidatedArgs::Help { command });
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
-    
+
     let opt = Info::default()
-    .descr("Gather author, contributor and publisher data on crates in your dependency graph")
-    .for_parser(parser)
-    .run();
+        .descr("Gather author, contributor and publisher data on crates in your dependency graph")
+        .for_parser(parser)
+        .run();
 
     println!("{:?}", opt);
-
 }
 
 fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
@@ -135,9 +159,7 @@ enum ValidatedArgs {
     Help { command: Option<String> },
 }
 
-
-
-/* ------ Everything below this line is going to be removed and replaced with bpaf ----------- 
+/*  -- Everything below this line is going to be removed and replaced with bpaf --
 
 #[derive(Clone, Debug)]
 struct Args {
@@ -293,4 +315,3 @@ pub(crate) fn err_exit(msg: &str) -> ! {
 
     std::process::exit(1)
 }
-
