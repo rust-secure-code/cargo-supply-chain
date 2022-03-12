@@ -114,6 +114,7 @@ If not specified, the cache is considered valid for 48 hours.",
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
 
     let opt = Info::default()
+        .version(env!("CARGO_PKG_VERSION"))
         .descr("Gather author, contributor and publisher data on crates in your dependency graph")
         .for_parser(parser)
         .run();
