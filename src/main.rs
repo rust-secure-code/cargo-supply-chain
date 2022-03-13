@@ -33,18 +33,9 @@ and maybe also
  */
 
 fn main() -> Result<(), std::io::Error> {
-    // match get_args() {
-    //     Err(e) => {
-    //         eprintln!("Error: {}", e);
-    //         eprint_help();
-    //         std::process::exit(1);
-    //     }
-    //     Ok(args) => dispatch_command(args),
-    // }
     let args = args_parser().run();
-
     println!("{:?}", args);
-    Ok(())
+    dispatch_command(args)
 }
 
 fn args_parser() -> OptionParser<ValidatedArgs> {
