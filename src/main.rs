@@ -41,11 +41,13 @@ fn main() -> Result<(), std::io::Error> {
     //     }
     //     Ok(args) => dispatch_command(args),
     // }
-    parse_args_bpaf();
+    let args = args_parser().run();
+
+    println!("{:?}", args);
     Ok(())
 }
 
-fn parse_args_bpaf() {
+fn args_parser() -> OptionParser<ValidatedArgs> {
     let diffable = short('d')
         .long("diffable")
         .switch()
@@ -113,13 +115,10 @@ If not specified, the cache is considered valid for 48 hours.",
     //let help =            construct!(ValidatedArgs::Help { command });
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
 
-    let opt = Info::default()
+    Info::default()
         .version(env!("CARGO_PKG_VERSION"))
         .descr("Gather author, contributor and publisher data on crates in your dependency graph")
         .for_parser(parser)
-        .run();
-
-    println!("{:?}", opt);
 }
 
 fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
@@ -315,4 +314,78 @@ pub(crate) fn err_exit(msg: &str) -> ! {
     };
 
     std::process::exit(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cache_max_age_parser() {
+        let _ = args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age", "7d"]))
+            .unwrap();
+        let _ = args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age=7d"]))
+            .unwrap();
+        let _ = args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age=1w"]))
+            .unwrap();
+        let _ = args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age=1m"]))
+            .unwrap();
+        let _ = args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age=1s"]))
+            .unwrap();
+        // erroneous invocations that must be rejected
+        assert!(args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&["crates", "--cache_max_age=5"]))
+            .is_err());
+    }
+
+    #[test]
+    fn test_accepted_query_options() {
+        for command in ["crates", "publishers", "json"] {
+            let _ = args_parser().run_inner(Args::from(&[command])).unwrap();
+            let _ = args_parser()
+                .run_inner(Args::from(&[command, "-d"]))
+                .unwrap();
+            let _ = args_parser()
+                .run_inner(Args::from(&[command, "--diffable"]))
+                .unwrap();
+            let _ = args_parser()
+                .run_inner(Args::from(&[command, "--cache_max_age=7d"]))
+                .unwrap();
+            let _ = args_parser()
+                .run_inner(Args::from(&[command, "-d", "--cache_max_age=7d"]))
+                .unwrap();
+            let _ = args_parser()
+                .run_inner(Args::from(&[command, "--diffable", "--cache_max_age=7d"]))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn test_accepted_update_options() {
+        let _ = args_parser().run_inner(Args::from(&["update"])).unwrap();
+        let _ = args_parser()
+            .run_inner(Args::from(&["update", "--cache_max_age=7d"]))
+            .unwrap();
+        // erroneous invocations that must be rejected
+        assert!(args_parser()
+            .run_inner(Args::from(&["update", "-d"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&["update", "--diffable"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&["update", "-d", "--cache_max_age=7d"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&["update", "--diffable", "--cache_max_age=7d"]))
+            .is_err());
+    }
 }
