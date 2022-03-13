@@ -43,7 +43,7 @@ fn args_parser() -> OptionParser<ValidatedArgs> {
         .long("diffable")
         .switch()
         .help("Make output more friendly towards tools such as `diff`");
-    let cache_max_age_parser = long("cache_max_age")
+    let cache_max_age_parser = long("cache-max-age")
         .argument("AGE")
         .parse(|text| humantime::parse_duration(&text))
         .help(
@@ -314,26 +314,26 @@ mod tests {
     #[test]
     fn test_cache_max_age_parser() {
         let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age", "7d"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age", "7d"]))
             .unwrap();
         let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age=7d"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age=7d"]))
             .unwrap();
         let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age=1w"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age=1w"]))
             .unwrap();
         let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age=1m"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age=1m"]))
             .unwrap();
         let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age=1s"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age=1s"]))
             .unwrap();
         // erroneous invocations that must be rejected
         assert!(args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age"]))
             .is_err());
         assert!(args_parser()
-            .run_inner(Args::from(&["crates", "--cache_max_age=5"]))
+            .run_inner(Args::from(&["crates", "--cache-max-age=5"]))
             .is_err());
     }
 
@@ -348,13 +348,13 @@ mod tests {
                 .run_inner(Args::from(&[command, "--diffable"]))
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "--cache_max_age=7d"]))
+                .run_inner(Args::from(&[command, "--cache-max-age=7d"]))
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "-d", "--cache_max_age=7d"]))
+                .run_inner(Args::from(&[command, "-d", "--cache-max-age=7d"]))
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "--diffable", "--cache_max_age=7d"]))
+                .run_inner(Args::from(&[command, "--diffable", "--cache-max-age=7d"]))
                 .unwrap();
         }
     }
@@ -363,7 +363,7 @@ mod tests {
     fn test_accepted_update_options() {
         let _ = args_parser().run_inner(Args::from(&["update"])).unwrap();
         let _ = args_parser()
-            .run_inner(Args::from(&["update", "--cache_max_age=7d"]))
+            .run_inner(Args::from(&["update", "--cache-max-age=7d"]))
             .unwrap();
         // erroneous invocations that must be rejected
         assert!(args_parser()
@@ -373,10 +373,10 @@ mod tests {
             .run_inner(Args::from(&["update", "--diffable"]))
             .is_err());
         assert!(args_parser()
-            .run_inner(Args::from(&["update", "-d", "--cache_max_age=7d"]))
+            .run_inner(Args::from(&["update", "-d", "--cache-max-age=7d"]))
             .is_err());
         assert!(args_parser()
-            .run_inner(Args::from(&["update", "--diffable", "--cache_max_age=7d"]))
+            .run_inner(Args::from(&["update", "--diffable", "--cache-max-age=7d"]))
             .is_err());
     }
 }
