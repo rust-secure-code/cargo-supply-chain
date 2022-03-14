@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::MetadataArgs;
 use crate::publishers::fetch_owners_of_crates;
+use crate::MetadataArgs;
 use crate::{common::*, publishers::PublisherData};
 
 pub fn publishers(

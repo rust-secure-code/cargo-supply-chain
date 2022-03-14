@@ -1,5 +1,5 @@
-use crate::{common::*, MetadataArgs};
 use crate::publishers::{fetch_owners_of_crates, PublisherKind};
+use crate::{common::*, MetadataArgs};
 
 pub fn crates(
     metadata_args: MetadataArgs,

@@ -1,7 +1,7 @@
 //! `json` subcommand is equivalent to `crates`,
 //! but provides structured output and more info about each publisher.
-use crate::{common::*, MetadataArgs};
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
+use crate::{common::*, MetadataArgs};
 use schemars::JsonSchema;
 use serde::Serialize;
 use std::collections::BTreeMap;

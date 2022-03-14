@@ -1,5 +1,7 @@
 use crate::{err_exit, MetadataArgs};
-use cargo_metadata::{CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId};
+use cargo_metadata::{
+    CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -16,8 +18,12 @@ pub struct SourcedPackage {
 
 fn metadata_command(args: MetadataArgs) -> MetadataCommand {
     let mut command = MetadataCommand::new();
-    if args.all_features { command.features(AllFeatures); }
-    if args.no_default_features { command.features(NoDefaultFeatures); }
+    if args.all_features {
+        command.features(AllFeatures);
+    }
+    if args.no_default_features {
+        command.features(NoDefaultFeatures);
+    }
     if let Some(path) = args.manifest_path {
         command.manifest_path(path);
     }

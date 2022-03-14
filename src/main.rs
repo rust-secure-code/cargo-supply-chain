@@ -46,14 +46,27 @@ If not specified, the cache is considered valid for 48 hours.",
         diffable,
     });
 
-    let all_features = long("all-features").switch()
-    .help("Activate all available features");
-    let no_default_features = long("no-default-features").switch().help("Do not activate the `default` feature");
-    let features = long("features").argument("FEATURES").optional().help("Space or comma separated list of features to activate");
-    let target = long("target").argument("TRIPLE").optional().help("Only include dependencies matching the given target-triple");
-    let manifest_path = long("manifest-path").argument_os("PATH").map(|s| PathBuf::from(s)).optional().help("Path to Cargo.toml");
+    let all_features = long("all-features")
+        .switch()
+        .help("Activate all available features");
+    let no_default_features = long("no-default-features")
+        .switch()
+        .help("Do not activate the `default` feature");
+    let features = long("features")
+        .argument("FEATURES")
+        .optional()
+        .help("Space or comma separated list of features to activate");
+    let target = long("target")
+        .argument("TRIPLE")
+        .optional()
+        .help("Only include dependencies matching the given target-triple");
+    let manifest_path = long("manifest-path")
+        .argument_os("PATH")
+        .map(|s| PathBuf::from(s))
+        .optional()
+        .help("Path to Cargo.toml");
 
-    let metadata_args_parser = construct!( MetadataArgs {
+    let metadata_args_parser = construct!(MetadataArgs {
         all_features,
         no_default_features,
         features,
@@ -141,10 +154,21 @@ struct QueryCommandArgs {
 
 #[derive(Clone, Debug)]
 enum ValidatedArgs {
-    Publishers { args: QueryCommandArgs, meta_args: MetadataArgs },
-    Crates { args: QueryCommandArgs, meta_args: MetadataArgs },
-    Json { args: QueryCommandArgs, meta_args: MetadataArgs },
-    Update { cache_max_age: Duration },
+    Publishers {
+        args: QueryCommandArgs,
+        meta_args: MetadataArgs,
+    },
+    Crates {
+        args: QueryCommandArgs,
+        meta_args: MetadataArgs,
+    },
+    Json {
+        args: QueryCommandArgs,
+        meta_args: MetadataArgs,
+    },
+    Update {
+        cache_max_age: Duration,
+    },
 }
 
 /// Arguments to be passed to `cargo metadata`
