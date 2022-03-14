@@ -1,6 +1,6 @@
 //! `json` subcommand is equivalent to `crates`,
 //! but provides structured output and more info about each publisher.
-use crate::common::*;
+use crate::{common::*, MetadataArgs};
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub struct NotAudited {
 }
 
 pub fn json(
-    args: Vec<String>,
+    args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
 ) -> Result<(), std::io::Error> {

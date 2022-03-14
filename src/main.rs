@@ -134,13 +134,13 @@ If not specified, the cache is considered valid for 48 hours.",
 fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
     match args {
         ValidatedArgs::Publishers { args, meta_args } => {
-            subcommands::publishers(args.metadata_args, args.diffable, args.cache_max_age)?
+            subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?
         }
         ValidatedArgs::Crates { args, meta_args } => {
-            subcommands::crates(args.metadata_args, args.diffable, args.cache_max_age)?
+            subcommands::crates(meta_args, args.diffable, args.cache_max_age)?
         }
         ValidatedArgs::Json { args, meta_args } => {
-            subcommands::json(args.metadata_args, args.diffable, args.cache_max_age)?
+            subcommands::json(meta_args, args.diffable, args.cache_max_age)?
         }
         ValidatedArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
         ValidatedArgs::Help { command } => subcommands::help(command.as_deref()),
@@ -172,7 +172,7 @@ enum ValidatedArgs {
 
 /// Arguments to be passed to `cargo metadata`
 #[derive(Clone, Debug)]
-struct MetadataArgs {
+pub struct MetadataArgs {
     // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
     // in the sense that it will not error out when encontering them; it just follows `all_features`
     all_features: bool,

@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
+use crate::MetadataArgs;
 use crate::publishers::fetch_owners_of_crates;
 use crate::{common::*, publishers::PublisherData};
 
 pub fn publishers(
-    metadata_args: Vec<String>,
+    metadata_args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
 ) -> Result<(), std::io::Error> {
