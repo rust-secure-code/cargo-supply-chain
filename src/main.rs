@@ -8,29 +8,16 @@
 //! * Identify risks in your dependency graph.
 
 #![forbid(unsafe_code)]
-#![allow(dead_code)] // TODO
 
-use std::{error::Error, ffi::OsString, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use bpaf::*;
-use pico_args::Arguments;
 
 mod api_client;
 mod common;
 mod crates_cache;
 mod publishers;
 mod subcommands;
-
-/* TODO:
-Support these `cargo metadata` flags:
-        --features <FEATURES>...         Space or comma separated list of features to activate
-        --all-features                   Activate all available features
-        --no-default-features            Do not activate the `default` feature
-        --target <TRIPLE>...             Only include resolve dependencies matching the given target-triple
-        --manifest-path <PATH>           Path to Cargo.toml
-and maybe also
-        --config <KEY=VALUE>...          Override a configuration value (unstable)
- */
 
 fn main() -> Result<(), std::io::Error> {
     let args = args_parser().run();
@@ -53,12 +40,10 @@ The format is a human readable duration such as `1w` or `1d 6h`.
 If not specified, the cache is considered valid for 48 hours.",
         )
         .fallback(Duration::from_secs(48 * 3600));
-    let metadata_args = short('m').argument("ARGS").many();
     let cache_max_age = cache_max_age_parser.clone();
     let args_parser = construct!(QueryCommandArgs {
         cache_max_age,
         diffable,
-        metadata_args
     });
 
     let all_features = long("all-features").switch()
@@ -122,7 +107,6 @@ If not specified, the cache is considered valid for 48 hours.",
         update,
     );
 
-    //let help =            construct!(ValidatedArgs::Help { command });
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
 
     Info::default()
@@ -143,14 +127,9 @@ fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
             subcommands::json(meta_args, args.diffable, args.cache_max_age)?
         }
         ValidatedArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
-        ValidatedArgs::Help { command } => subcommands::help(command.as_deref()),
     }
 
     Ok(())
-}
-
-fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
-    humantime::parse_duration(&text)
 }
 
 /// Arguments for typical querying commands - crates, publishers, json
@@ -158,7 +137,6 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
 struct QueryCommandArgs {
     cache_max_age: Duration,
     diffable: bool,
-    metadata_args: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -167,7 +145,6 @@ enum ValidatedArgs {
     Crates { args: QueryCommandArgs, meta_args: MetadataArgs },
     Json { args: QueryCommandArgs, meta_args: MetadataArgs },
     Update { cache_max_age: Duration },
-    Help { command: Option<String> },
 }
 
 /// Arguments to be passed to `cargo metadata`

@@ -33,7 +33,7 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
 }
 
 pub fn sourced_dependencies(metadata_args: MetadataArgs) -> Vec<SourcedPackage> {
-    let mut command = metadata_command(metadata_args);
+    let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
         Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => err_exit(&e),
