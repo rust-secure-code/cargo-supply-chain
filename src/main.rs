@@ -10,7 +10,7 @@
 #![forbid(unsafe_code)]
 #![allow(dead_code)] // TODO
 
-use std::{error::Error, ffi::OsString, time::Duration};
+use std::{error::Error, ffi::OsString, path::PathBuf, time::Duration};
 
 use bpaf::*;
 use pico_args::Arguments;
@@ -61,15 +61,31 @@ If not specified, the cache is considered valid for 48 hours.",
         metadata_args
     });
 
+    let all_features = long("all-features").switch()
+    .help("Activate all available features");
+    let no_default_features = long("no-default-features").switch().help("Do not activate the `default` feature");
+    let features = long("features").argument("FEATURES").optional().help("Space or comma separated list of features to activate");
+    let target = long("target").argument("TRIPLE").optional().help("Only include dependencies matching the given target-triple");
+    let manifest_path = long("manifest-path").argument_os("PATH").map(|s| PathBuf::from(s)).optional().help("Path to Cargo.toml");
+
+    let metadata_args_parser = construct!( MetadataArgs {
+        all_features,
+        no_default_features,
+        features,
+        target,
+        manifest_path,
+    });
+
     fn subcommand_with_common_args(
         command_name: &'static str,
         args: Parser<QueryCommandArgs>,
+        meta_args: Parser<MetadataArgs>,
         descr: &'static str,
     ) -> bpaf::Parser<ValidatedArgs> {
         let parser = match command_name {
-            "publishers" => construct!(ValidatedArgs::Publishers { args }),
-            "crates" => construct!(ValidatedArgs::Crates { args }),
-            "json" => construct!(ValidatedArgs::Json { args }),
+            "publishers" => construct!(ValidatedArgs::Publishers { args, meta_args }),
+            "crates" => construct!(ValidatedArgs::Crates { args, meta_args }),
+            "json" => construct!(ValidatedArgs::Json { args, meta_args }),
             _ => unreachable!(),
         };
         let parser = Info::default().descr(descr).for_parser(parser);
@@ -79,16 +95,19 @@ If not specified, the cache is considered valid for 48 hours.",
     let publishers = subcommand_with_common_args(
         "publishers",
         args_parser.clone(),
+        metadata_args_parser.clone(),
         "List all crates.io publishers in the depedency graph",
     );
     let crates = subcommand_with_common_args(
         "crates",
         args_parser.clone(),
+        metadata_args_parser.clone(),
         "List all crates in dependency graph and crates.io publishers for each",
     );
     let json = subcommand_with_common_args(
         "json",
         args_parser.clone(),
+        metadata_args_parser.clone(),
         "Like 'crates', but in JSON and with more fields for each publisher",
     );
 
@@ -114,13 +133,13 @@ If not specified, the cache is considered valid for 48 hours.",
 
 fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
     match args {
-        ValidatedArgs::Publishers { args } => {
+        ValidatedArgs::Publishers { args, meta_args } => {
             subcommands::publishers(args.metadata_args, args.diffable, args.cache_max_age)?
         }
-        ValidatedArgs::Crates { args } => {
+        ValidatedArgs::Crates { args, meta_args } => {
             subcommands::crates(args.metadata_args, args.diffable, args.cache_max_age)?
         }
-        ValidatedArgs::Json { args } => {
+        ValidatedArgs::Json { args, meta_args } => {
             subcommands::json(args.metadata_args, args.diffable, args.cache_max_age)?
         }
         ValidatedArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
@@ -134,6 +153,7 @@ fn parse_max_age(text: &str) -> Result<Duration, humantime::DurationError> {
     humantime::parse_duration(&text)
 }
 
+/// Arguments for typical querying commands - crates, publishers, json
 #[derive(Clone, Debug)]
 struct QueryCommandArgs {
     cache_max_age: Duration,
@@ -143,11 +163,24 @@ struct QueryCommandArgs {
 
 #[derive(Clone, Debug)]
 enum ValidatedArgs {
-    Publishers { args: QueryCommandArgs },
-    Crates { args: QueryCommandArgs },
-    Json { args: QueryCommandArgs },
+    Publishers { args: QueryCommandArgs, meta_args: MetadataArgs },
+    Crates { args: QueryCommandArgs, meta_args: MetadataArgs },
+    Json { args: QueryCommandArgs, meta_args: MetadataArgs },
     Update { cache_max_age: Duration },
     Help { command: Option<String> },
+}
+
+/// Arguments to be passed to `cargo metadata`
+#[derive(Clone, Debug)]
+struct MetadataArgs {
+    // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
+    // in the sense that it will not error out when encontering them; it just follows `all_features`
+    all_features: bool,
+    no_default_features: bool,
+    // This is a `String` because we don't parse the value, just pass it on to `cargo metadata` blindly
+    features: Option<String>,
+    target: Option<String>,
+    manifest_path: Option<PathBuf>,
 }
 
 /*  -- Everything below this line is going to be removed and replaced with bpaf --
