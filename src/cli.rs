@@ -161,8 +161,11 @@ Instead, rely on requests to the live API - they are slower, but use much less d
     Info::default()
         .version(env!("CARGO_PKG_VERSION"))
         .descr("Gather author, contributor and publisher data on crates in your dependency graph")
-        .footer("Most commands also accept flags controlling the features, targets, etc.
-See 'cargo supply-chain <command> --help' for more information on a specific command.")
+        .footer(
+            "\
+Most commands also accept flags controlling the features, targets, etc.
+See 'cargo supply-chain <command> --help' for more information on a specific command.",
+        )
         .for_parser(parser)
 }
 
