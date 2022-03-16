@@ -260,6 +260,13 @@ fn validate_args(args: Args) -> Result<ValidatedArgs, std::io::Error> {
                 format!("Unrecognized argument: {}", args.free[0]),
             ));
         }
+        //FIXME Should maybe cause subcommands::help(String::from("update")) to be called instead of eprint_help() in main
+        if args.command == "update" && (args.diffable || !args.metadata_args.is_empty()) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Update subcommand doesn't allow --diffable or metadata arguments"),
+            ));
+        }
         match args.command.as_str() {
             "publishers" => {
                 return Ok(ValidatedArgs::Publishers {
