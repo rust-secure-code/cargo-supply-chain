@@ -24,7 +24,7 @@ fn main() -> Result<(), std::io::Error> {
     dispatch_command(args)
 }
 
-fn args_parser() -> OptionParser<ValidatedArgs> {
+fn args_parser() -> OptionParser<CliArgs> {
     let diffable = short('d')
         .long("diffable")
         .help("Make output more friendly towards tools such as `diff`")
@@ -79,11 +79,11 @@ If not specified, the cache is considered valid for 48 hours.",
         meta_args: Parser<MetadataArgs>,
         descr: &'static str,
         descr_ext: &'static str,
-    ) -> bpaf::Parser<ValidatedArgs> {
+    ) -> bpaf::Parser<CliArgs> {
         let parser = match command_name {
-            "publishers" => construct!(ValidatedArgs::Publishers { args, meta_args }),
-            "crates" => construct!(ValidatedArgs::Crates { args, meta_args }),
-            "json" => construct!(ValidatedArgs::Json { args, meta_args }),
+            "publishers" => construct!(CliArgs::Publishers { args, meta_args }),
+            "crates" => construct!(CliArgs::Crates { args, meta_args }),
+            "json" => construct!(CliArgs::Json { args, meta_args }),
             _ => unreachable!(),
         };
         let parser = Info::default().descr(descr_ext).for_parser(parser);
@@ -124,7 +124,7 @@ it will be used. Otherwise live data will be fetched from the crates.io API.",
     );
 
     let cache_max_age = cache_max_age_parser.clone();
-    let update = construct!(ValidatedArgs::Update { cache_max_age });
+    let update = construct!(CliArgs::Update { cache_max_age });
     let update = Info::default()
         .descr(
             "Download the latest daily dump from crates.io to speed up other commands
@@ -151,18 +151,18 @@ Instead, rely on requests to the live API - they are slower, but use much less d
         .for_parser(parser)
 }
 
-fn dispatch_command(args: ValidatedArgs) -> Result<(), std::io::Error> {
+fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {
     match args {
-        ValidatedArgs::Publishers { args, meta_args } => {
+        CliArgs::Publishers { args, meta_args } => {
             subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?
         }
-        ValidatedArgs::Crates { args, meta_args } => {
+        CliArgs::Crates { args, meta_args } => {
             subcommands::crates(meta_args, args.diffable, args.cache_max_age)?
         }
-        ValidatedArgs::Json { args, meta_args } => {
+        CliArgs::Json { args, meta_args } => {
             subcommands::json(meta_args, args.diffable, args.cache_max_age)?
         }
-        ValidatedArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
+        CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
     }
 
     Ok(())
@@ -176,7 +176,7 @@ struct QueryCommandArgs {
 }
 
 #[derive(Clone, Debug)]
-enum ValidatedArgs {
+enum CliArgs {
     Publishers {
         args: QueryCommandArgs,
         meta_args: MetadataArgs,
