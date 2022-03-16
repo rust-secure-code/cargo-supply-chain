@@ -28,17 +28,17 @@ fn main() -> Result<(), std::io::Error> {
 fn args_parser() -> OptionParser<ValidatedArgs> {
     let diffable = short('d')
         .long("diffable")
-        .switch()
-        .help("Make output more friendly towards tools such as `diff`");
+        .help("Make output more friendly towards tools such as `diff`")
+        .switch();
     let cache_max_age_parser = long("cache-max-age")
-        .argument("AGE")
-        .parse(|text| humantime::parse_duration(&text))
         .help(
-            "\
+        "\
 The cache will be considered valid while younger than specified.
 The format is a human readable duration such as `1w` or `1d 6h`.
 If not specified, the cache is considered valid for 48 hours.",
-        )
+    )
+        .argument("AGE")
+        .parse(|text| humantime::parse_duration(&text))
         .fallback(Duration::from_secs(48 * 3600));
     let cache_max_age = cache_max_age_parser.clone();
     let args_parser = construct!(QueryCommandArgs {
@@ -47,24 +47,24 @@ If not specified, the cache is considered valid for 48 hours.",
     });
 
     let all_features = long("all-features")
-        .switch()
-        .help("Activate all available features");
+        .help("Activate all available features")
+        .switch();
     let no_default_features = long("no-default-features")
-        .switch()
-        .help("Do not activate the `default` feature");
+        .help("Do not activate the `default` feature")
+        .switch();
     let features = long("features")
+        .help("Space or comma separated list of features to activate")
         .argument("FEATURES")
-        .optional()
-        .help("Space or comma separated list of features to activate");
+        .optional();
     let target = long("target")
+        .help("Only include dependencies matching the given target-triple")
         .argument("TRIPLE")
-        .optional()
-        .help("Only include dependencies matching the given target-triple");
+        .optional();
     let manifest_path = long("manifest-path")
+        .help("Path to Cargo.toml")
         .argument_os("PATH")
         .map(|s| PathBuf::from(s))
-        .optional()
-        .help("Path to Cargo.toml");
+        .optional();
 
     let metadata_args_parser = construct!(MetadataArgs {
         all_features,
