@@ -21,7 +21,6 @@ mod subcommands;
 
 fn main() -> Result<(), std::io::Error> {
     let args = args_parser().run();
-    println!("{:?}", args);
     dispatch_command(args)
 }
 
