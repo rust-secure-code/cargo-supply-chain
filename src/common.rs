@@ -1,4 +1,4 @@
-use crate::{err_exit};
+use crate::err_exit;
 use cargo_metadata::{
     CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
 };

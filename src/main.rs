@@ -16,8 +16,8 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
-use common::MetadataArgs;
 use cli::CliArgs;
+use common::MetadataArgs;
 
 fn main() -> Result<(), std::io::Error> {
     let args = cli::args_parser().run();
@@ -53,4 +53,3 @@ pub(crate) fn err_exit(msg: &str) -> ! {
 
     std::process::exit(1)
 }
-

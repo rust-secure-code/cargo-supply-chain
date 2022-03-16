@@ -1,6 +1,6 @@
-use bpaf::*;
-use std::{time::Duration, path::PathBuf};
 use crate::common::MetadataArgs;
+use bpaf::*;
+use std::{path::PathBuf, time::Duration};
 
 /// Arguments for typical querying commands - crates, publishers, json
 #[derive(Clone, Debug)]
