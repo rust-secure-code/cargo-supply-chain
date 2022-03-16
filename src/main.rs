@@ -84,8 +84,11 @@ If not specified, the cache is considered valid for 48 hours.",
             "publishers" => construct!(CliArgs::Publishers { args, meta_args }),
             "crates" => construct!(CliArgs::Crates { args, meta_args }),
             "json" => {
-                let print_schema = long("print-schema").help("Print JSON schema and exit").req_flag(());
-                construct!(CliArgs::Json { args, meta_args }).or_else(construct!(CliArgs::JsonSchema { print_schema }))
+                let print_schema = long("print-schema")
+                    .help("Print JSON schema and exit")
+                    .req_flag(());
+                construct!(CliArgs::Json { args, meta_args })
+                    .or_else(construct!(CliArgs::JsonSchema { print_schema }))
             }
             _ => unreachable!(),
         };
