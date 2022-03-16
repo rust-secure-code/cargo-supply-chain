@@ -1,8 +1,8 @@
-use crate::{err_exit, MetadataArgs};
+use crate::{err_exit};
 use cargo_metadata::{
     CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PkgSource {
@@ -14,6 +14,19 @@ pub enum PkgSource {
 pub struct SourcedPackage {
     pub source: PkgSource,
     pub package: Package,
+}
+
+/// Arguments to be passed to `cargo metadata`
+#[derive(Clone, Debug)]
+pub struct MetadataArgs {
+    // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
+    // in the sense that it will not error out when encontering them; it just follows `all_features`
+    pub all_features: bool,
+    pub no_default_features: bool,
+    // This is a `String` because we don't parse the value, just pass it on to `cargo metadata` blindly
+    pub features: Option<String>,
+    pub target: Option<String>,
+    pub manifest_path: Option<PathBuf>,
 }
 
 fn metadata_command(args: MetadataArgs) -> MetadataCommand {
