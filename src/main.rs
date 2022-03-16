@@ -32,11 +32,11 @@ fn args_parser() -> OptionParser<ValidatedArgs> {
         .switch();
     let cache_max_age_parser = long("cache-max-age")
         .help(
-        "\
+            "\
 The cache will be considered valid while younger than specified.
 The format is a human readable duration such as `1w` or `1d 6h`.
 If not specified, the cache is considered valid for 48 hours.",
-    )
+        )
         .argument("AGE")
         .parse(|text| humantime::parse_duration(&text))
         .fallback(Duration::from_secs(48 * 3600));
