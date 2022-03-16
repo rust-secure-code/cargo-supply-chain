@@ -301,4 +301,33 @@ mod tests {
             .run_inner(Args::from(&["update", "--diffable", "--cache-max-age=7d"]))
             .is_err());
     }
+
+    #[test]
+    fn test_json_schema_option() {
+        let _ = args_parser()
+            .run_inner(Args::from(&["json", "--print-schema"]))
+            .unwrap();
+        // erroneous invocations that must be rejected
+        assert!(args_parser()
+            .run_inner(Args::from(&["json", "--print-schema", "-d"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&["json", "--print-schema", "--diffable"]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&[
+                "json",
+                "--print-schema",
+                "--cache-max-age=7d"
+            ]))
+            .is_err());
+        assert!(args_parser()
+            .run_inner(Args::from(&[
+                "json",
+                "--print-schema",
+                "--diffable",
+                "--cache-max-age=7d"
+            ]))
+            .is_err());
+    }
 }
