@@ -83,7 +83,10 @@ If not specified, the cache is considered valid for 48 hours.",
         let parser = match command_name {
             "publishers" => construct!(CliArgs::Publishers { args, meta_args }),
             "crates" => construct!(CliArgs::Crates { args, meta_args }),
-            "json" => construct!(CliArgs::Json { args, meta_args }),
+            "json" => {
+                let print_schema = long("print-schema").help("Print JSON schema and exit").req_flag(());
+                construct!(CliArgs::Json { args, meta_args }).or_else(construct!(CliArgs::JsonSchema { print_schema }))
+            }
             _ => unreachable!(),
         };
         let parser = Info::default().descr(descr_ext).for_parser(parser);
@@ -162,6 +165,9 @@ fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {
         CliArgs::Json { args, meta_args } => {
             subcommands::json(meta_args, args.diffable, args.cache_max_age)?
         }
+        CliArgs::JsonSchema { print_schema: () } => {
+            subcommands::print_schema()?;
+        }
         CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
     }
 
@@ -188,6 +194,9 @@ enum CliArgs {
     Json {
         args: QueryCommandArgs,
         meta_args: MetadataArgs,
+    },
+    JsonSchema {
+        print_schema: (),
     },
     Update {
         cache_max_age: Duration,

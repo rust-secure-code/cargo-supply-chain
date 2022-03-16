@@ -1,5 +1,11 @@
-//! Displays help information to the user when requested
+//! The schema for the JSON subcommand output
 
+use std::io::{Result, Write};
+
+pub fn print_schema() -> Result<()> {
+    writeln!(std::io::stdout(), "{}", JSON_SCHEMA)?;
+    Ok(())
+}
 
 const JSON_SCHEMA: &str = r##"{
   "$schema": "http://json-schema.org/draft-07/schema#",
