@@ -123,7 +123,7 @@ it will be used. Otherwise live data will be fetched from the crates.io API.",
         "Like 'crates', but in JSON and with more fields for each publisher",
         "Detailed info on publishers of all crates in the dependency graph, in JSON
 
-The JSON schema is provided below, but the output is designed to be self-explanatory.
+The JSON schema is also available, use --print-schema to get it.
 
 If a local cache created by 'update' subcommand is present and up to date,
 it will be used. Otherwise live data will be fetched from the crates.io API.",
