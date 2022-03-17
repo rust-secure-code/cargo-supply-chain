@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+#[cfg(test)]
 use schemars::JsonSchema;
 
 use crate::common::*;
@@ -22,7 +23,8 @@ struct TeamsResponse {
 }
 
 /// Data about a single publisher received from a crates.io API endpoint
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(JsonSchema))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PublisherData {
     pub id: u64,
     pub login: String,
@@ -59,9 +61,8 @@ impl Ord for PublisherData {
     }
 }
 
-#[derive(
-    JsonSchema, Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq,
-)]
+#[cfg_attr(test, derive(JsonSchema))]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum PublisherKind {
     team,
