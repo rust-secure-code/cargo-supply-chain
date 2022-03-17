@@ -243,4 +243,16 @@ mod tests {
             parse_args(&["json", "--print-schema", "--diffable", "--cache-max-age=7d"]).is_err()
         );
     }
+
+    #[test]
+    fn test_invocation_through_cargo() {
+        let _ = parse_args(&["supply-chain", "update"]).unwrap();
+        let _ = parse_args(&["supply-chain", "publishers", "-d"]).unwrap();
+        let _ = parse_args(&["supply-chain", "crates", "-d", "--cache-max-age=5h"]).unwrap();
+        let _ = parse_args(&["supply-chain", "json", "--diffable"]).unwrap();
+        let _ = parse_args(&["supply-chain", "json", "--print-schema"]).unwrap();
+        // erroneous invocations to be rejected
+        assert!(parse_args(&["supply-chain", "supply-chain", "json", "--print-schema"]).is_err());
+        assert!(parse_args(&["supply-chain", "supply-chain", "crates", "-d"]).is_err());
+    }
 }
