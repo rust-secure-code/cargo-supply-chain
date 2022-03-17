@@ -1,8 +1,8 @@
-use crate::common::*;
 use crate::publishers::{fetch_owners_of_crates, PublisherKind};
+use crate::{common::*, MetadataArgs};
 
 pub fn crates(
-    metadata_args: Vec<String>,
+    metadata_args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
 ) -> Result<(), std::io::Error> {

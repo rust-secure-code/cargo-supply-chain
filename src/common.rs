@@ -1,6 +1,8 @@
 use crate::err_exit;
-use cargo_metadata::{CargoOpt::AllFeatures, MetadataCommand, Package, PackageId};
-use std::collections::HashMap;
+use cargo_metadata::{
+    CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
+};
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PkgSource {
@@ -14,12 +16,44 @@ pub struct SourcedPackage {
     pub package: Package,
 }
 
-pub fn sourced_dependencies(metadata_args: Vec<String>) -> Vec<SourcedPackage> {
-    let meta = match MetadataCommand::new()
-        .features(AllFeatures)
-        .other_options(metadata_args)
-        .exec()
-    {
+/// Arguments to be passed to `cargo metadata`
+#[derive(Clone, Debug)]
+pub struct MetadataArgs {
+    // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
+    // in the sense that it will not error out when encontering them; it just follows `all_features`
+    pub all_features: bool,
+    pub no_default_features: bool,
+    // This is a `String` because we don't parse the value, just pass it on to `cargo metadata` blindly
+    pub features: Option<String>,
+    pub target: Option<String>,
+    pub manifest_path: Option<PathBuf>,
+}
+
+fn metadata_command(args: MetadataArgs) -> MetadataCommand {
+    let mut command = MetadataCommand::new();
+    if args.all_features {
+        command.features(AllFeatures);
+    }
+    if args.no_default_features {
+        command.features(NoDefaultFeatures);
+    }
+    if let Some(path) = args.manifest_path {
+        command.manifest_path(path);
+    }
+    if let Some(target) = args.target {
+        command.manifest_path(target);
+    }
+    // `cargo-metadata` crate assumes we have a Vec of features,
+    // but we really didn't want to parse it ourselves, so we pass the argument directly
+    if let Some(features) = args.features {
+        command.other_options(vec![format!("--target={}", features)]);
+    }
+    command
+}
+
+pub fn sourced_dependencies(metadata_args: MetadataArgs) -> Vec<SourcedPackage> {
+    let command = metadata_command(metadata_args);
+    let meta = match command.exec() {
         Ok(v) => v,
         Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => err_exit(&e),
         Err(err) => err_exit(format!("Failed to fetch crate metadata!\n  {}", err).as_str()),

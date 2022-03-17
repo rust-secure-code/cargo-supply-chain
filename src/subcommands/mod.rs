@@ -1,11 +1,11 @@
 pub mod crates;
-pub mod help;
 pub mod json;
+pub mod json_schema;
 pub mod publishers;
 pub mod update;
 
 pub use crates::crates;
-pub use help::help;
 pub use json::json;
+pub use json_schema::print_schema;
 pub use publishers::publishers;
 pub use update::update;

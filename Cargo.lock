@@ -27,6 +27,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bpaf"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dba13e5c0d9314ca471d8b10e2fbf245b3f83a904cfb0a9d50f12b72971b12cd"
+
+[[package]]
 name = "bstr"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -52,8 +58,9 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cargo-supply-chain"
-version = "0.2.0"
+version = "0.3.0-alpha.1"
 dependencies = [
+ "bpaf",
  "cargo_metadata",
  "csv",
  "directories-next",
@@ -61,7 +68,6 @@ dependencies = [
  "humantime",
  "humantime-serde",
  "indicatif",
- "pico-args",
  "schemars",
  "serde",
  "serde_json",
@@ -356,12 +362,6 @@ name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
-
-[[package]]
-name = "pico-args"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28b9b4df73455c861d7cbf8be42f01d3b373ed7f02e378d55fa84eafc6f638b1"
 
 [[package]]
 name = "proc-macro2"
