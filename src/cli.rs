@@ -1,6 +1,6 @@
 use crate::common::MetadataArgs;
 use bpaf::*;
-use std::{path::PathBuf, time::Duration};
+use std::{ffi::OsStr, path::PathBuf, time::Duration};
 
 /// Arguments for typical querying commands - crates, publishers, json
 #[derive(Clone, Debug)]
@@ -29,6 +29,20 @@ pub(crate) enum CliArgs {
     Update {
         cache_max_age: Duration,
     },
+}
+
+/// Parses arguments provided on the command line.
+/// This function is generic to allow unit testing.
+pub(crate) fn parse_args<T: AsRef<OsStr> + ?Sized>(args: &[&T]) -> Result<CliArgs, ParseFailure> {
+    let args: Vec<&OsStr> = args.iter().map(|a| a.as_ref()).collect();
+    let mut args: &[&OsStr] = &args;
+    // This is the reason this function even exists:
+    // Cargo inserts 'supply-chain' as the first argument, but we need to strip it,
+    // because from the user's perspective it doesn't exist.
+    if args.first() == Some(&"supply-chain".as_ref()) {
+        args = &args[1..];
+    }
+    args_parser().run_inner(Args::from(args))
 }
 
 pub(crate) fn args_parser() -> OptionParser<CliArgs> {
@@ -175,28 +189,14 @@ mod tests {
 
     #[test]
     fn test_cache_max_age_parser() {
-        let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age", "7d"]))
-            .unwrap();
-        let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age=7d"]))
-            .unwrap();
-        let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age=1w"]))
-            .unwrap();
-        let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age=1m"]))
-            .unwrap();
-        let _ = args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age=1s"]))
-            .unwrap();
+        let _ = parse_args(&["crates", "--cache-max-age", "7d"]).unwrap();
+        let _ = parse_args(&["crates", "--cache-max-age=7d"]).unwrap();
+        let _ = parse_args(&["crates", "--cache-max-age=1w"]).unwrap();
+        let _ = parse_args(&["crates", "--cache-max-age=1m"]).unwrap();
+        let _ = parse_args(&["crates", "--cache-max-age=1s"]).unwrap();
         // erroneous invocations that must be rejected
-        assert!(args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&["crates", "--cache-max-age=5"]))
-            .is_err());
+        assert!(parse_args(&["crates", "--cache-max-age"]).is_err());
+        assert!(parse_args(&["crates", "--cache-max-age=5"]).is_err());
     }
 
     #[test]
@@ -224,50 +224,23 @@ mod tests {
     #[test]
     fn test_accepted_update_options() {
         let _ = args_parser().run_inner(Args::from(&["update"])).unwrap();
-        let _ = args_parser()
-            .run_inner(Args::from(&["update", "--cache-max-age=7d"]))
-            .unwrap();
+        let _ = parse_args(&["update", "--cache-max-age=7d"]).unwrap();
         // erroneous invocations that must be rejected
-        assert!(args_parser()
-            .run_inner(Args::from(&["update", "-d"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&["update", "--diffable"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&["update", "-d", "--cache-max-age=7d"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&["update", "--diffable", "--cache-max-age=7d"]))
-            .is_err());
+        assert!(parse_args(&["update", "-d"]).is_err());
+        assert!(parse_args(&["update", "--diffable"]).is_err());
+        assert!(parse_args(&["update", "-d", "--cache-max-age=7d"]).is_err());
+        assert!(parse_args(&["update", "--diffable", "--cache-max-age=7d"]).is_err());
     }
 
     #[test]
     fn test_json_schema_option() {
-        let _ = args_parser()
-            .run_inner(Args::from(&["json", "--print-schema"]))
-            .unwrap();
+        let _ = parse_args(&["json", "--print-schema"]).unwrap();
         // erroneous invocations that must be rejected
-        assert!(args_parser()
-            .run_inner(Args::from(&["json", "--print-schema", "-d"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&["json", "--print-schema", "--diffable"]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&[
-                "json",
-                "--print-schema",
-                "--cache-max-age=7d"
-            ]))
-            .is_err());
-        assert!(args_parser()
-            .run_inner(Args::from(&[
-                "json",
-                "--print-schema",
-                "--diffable",
-                "--cache-max-age=7d"
-            ]))
-            .is_err());
+        assert!(parse_args(&["json", "--print-schema", "-d"]).is_err());
+        assert!(parse_args(&["json", "--print-schema", "--diffable"]).is_err());
+        assert!(parse_args(&["json", "--print-schema", "--cache-max-age=7d"]).is_err());
+        assert!(
+            parse_args(&["json", "--print-schema", "--diffable", "--cache-max-age=7d"]).is_err()
+        );
     }
 }
