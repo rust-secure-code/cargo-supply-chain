@@ -1,3 +1,7 @@
+## v0.3.1 (2021-03-18)
+
+ - Fix `--features` flag not being honored if `--target` is also passed
+
 ## v0.3.0 (2021-03-18)
 
  - Renamed `--cache_max_age` to `--cache-max-age` for consistency with Cargo flags
