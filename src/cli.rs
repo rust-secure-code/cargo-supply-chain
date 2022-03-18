@@ -1,6 +1,6 @@
 use crate::common::MetadataArgs;
 use bpaf::*;
-use std::{ffi::OsStr, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 /// Arguments for typical querying commands - crates, publishers, json
 #[derive(Clone, Debug)]
@@ -29,20 +29,6 @@ pub(crate) enum CliArgs {
     Update {
         cache_max_age: Duration,
     },
-}
-
-/// Parses arguments provided on the command line.
-/// This function is generic to allow unit testing.
-pub(crate) fn parse_args<T: AsRef<OsStr> + ?Sized>(args: &[&T]) -> Result<CliArgs, ParseFailure> {
-    let args: Vec<&OsStr> = args.iter().map(|a| a.as_ref()).collect();
-    let mut args: &[&OsStr] = &args;
-    // This is the reason this function even exists:
-    // Cargo inserts 'supply-chain' as the first argument, but we need to strip it,
-    // because from the user's perspective it doesn't exist.
-    if args.first() == Some(&"supply-chain".as_ref()) {
-        args = &args[1..];
-    }
-    args_parser().run_inner(Args::from(args))
 }
 
 pub(crate) fn args_parser() -> OptionParser<CliArgs> {
@@ -171,6 +157,7 @@ Instead, rely on requests to the live API - they are slower, but use much less d
     );
 
     let parser = publishers.or_else(crates).or_else(json).or_else(update);
+    let parser = cargo_helper("supply-chain", parser);
 
     Info::default()
         .version(env!("CARGO_PKG_VERSION"))
@@ -185,7 +172,15 @@ See 'cargo supply-chain <command> --help' for more information on a specific com
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
+
     use super::*;
+
+    fn parse_args<T: AsRef<OsStr> + ?Sized>(args: &[&T]) -> Result<CliArgs, ParseFailure> {
+        let args: Vec<&OsStr> = args.iter().map(|a| a.as_ref()).collect();
+        let args: &[&OsStr] = &args;
+        args_parser().run_inner(Args::from(args))
+    }
 
     #[test]
     fn test_cache_max_age_parser() {
