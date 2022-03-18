@@ -1,9 +1,10 @@
 ## v0.3.0 (unreleased)
 
- - Dropped the `help` subcommand. Use `--help` instead, e.g. `cargo supply-chain crates --help`
  - Renamed `--cache_max_age` to `--cache-max-age` for consistency with Cargo flags
  - Accept flags such as `--target` directly, without relying on the escape hatch of passing cargo metadata arguments after `--`
  - No longer default to `--all-features`, handle features via the same flags as Cargo itself
+ - The json schema is now printed separately, use `cargo supply-chain json --print-schema` to get it
+ - Dropped the `help` subcommand. Use `--help` instead, e.g. `cargo supply-chain crates --help`
 
 Internal improvements:
 
