@@ -18,26 +18,36 @@ To install this tool, please run the following command:
 cargo install cargo-supply-chain
 ```
 
-Once installed, simply navigate to your project and run `cargo supply-chain` to start. Here's a list of possible subcommands and arguments which you may use:
+Then run it with:
+
+```shell
+cargo supply-chain publishers
+```
+
+By default the supply chain is listed for **all targets** and **default features only**.
+
+You can alter this behavior by passing `--target=…` to list dependencies for a specific target.
+You can use `--all-features`, `--no-default-features`, and `--features=…` to control feature selection.
+
+Here's a list of subcommands:
 
 ```none
-Commands:
-  publishers   List all crates.io publishers in the depedency graph
-  crates       List all crates in dependency graph and crates.io publishers for each
-  json         Like 'crates', but in JSON and with more fields for each publisher
-  update       Download the latest daily dump from crates.io to speed up other commands
+Gather author, contributor and publisher data on crates in your dependency graph
 
-See 'cargo supply-chain help <command>' for more information on a specific command.
+Usage: COMMAND [ARG]…
 
-Arguments:
-  --cache-max-age  The cache will be considered valid while younger than specified.
-                   The format is a human readable duration such as `1w` or `1d 6h`.
-                   If not specified, the cache is considered valid for 48 hours.
-  -d, --diffable   Make output more friendly towards tools such as `diff`
+Available options:
+    -h, --help      Prints help information
+    -v, --version   Prints version information
 
-Any arguments after the `--` will be passed to `cargo metadata`, for example:
-  cargo supply-chain crates -- --filter-platform=x86_64-unknown-linux-gnu
-See `cargo metadata --help` for a list of flags it supports.
+Available commands:
+    publishers  List all crates.io publishers in the depedency graph
+    crates      List all crates in dependency graph and crates.io publishers for each
+    json        Like 'crates', but in JSON and with more fields for each publisher
+    update      Download the latest daily dump from crates.io to speed up other commands
+
+Most commands also accept flags controlling the features, targets, etc.
+See 'cargo supply-chain <command> --help' for more information on a specific command.
 ```
 
 ## License
