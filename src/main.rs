@@ -16,25 +16,12 @@ mod crates_cache;
 mod publishers;
 mod subcommands;
 
-use std::{env::args_os, ffi::OsString};
-
-use bpaf::ParseFailure;
 use cli::CliArgs;
 use common::MetadataArgs;
 
 fn main() -> Result<(), std::io::Error> {
-    let raw_args: Vec<OsString> = args_os().skip(1).collect();
-    match cli::parse_args(&raw_args) {
-        Ok(args) => dispatch_command(args),
-        Err(ParseFailure::Stdout(msg)) => {
-            println!("{}", msg);
-            std::process::exit(0);
-        }
-        Err(ParseFailure::Stderr(msg)) => {
-            eprintln!("{}", msg);
-            std::process::exit(1);
-        }
-    }
+    let args = cli::args_parser().run();
+    dispatch_command(args)
 }
 
 fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {

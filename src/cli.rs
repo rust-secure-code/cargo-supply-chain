@@ -33,7 +33,7 @@ pub(crate) enum CliArgs {
 
 /// Parses arguments provided on the command line.
 /// This function is generic to allow unit testing.
-pub(crate) fn parse_args<T: AsRef<OsStr>>(args: &[T]) -> Result<CliArgs, ParseFailure> {
+pub(crate) fn parse_args<T: AsRef<OsStr> + ?Sized>(args: &[&T]) -> Result<CliArgs, ParseFailure> {
     let args: Vec<&OsStr> = args.iter().map(|a| a.as_ref()).collect();
     let mut args: &[&OsStr] = &args;
     // This is the reason this function even exists:
@@ -45,7 +45,7 @@ pub(crate) fn parse_args<T: AsRef<OsStr>>(args: &[T]) -> Result<CliArgs, ParseFa
     args_parser().run_inner(Args::from(args))
 }
 
-fn args_parser() -> OptionParser<CliArgs> {
+pub(crate) fn args_parser() -> OptionParser<CliArgs> {
     let diffable = short('d')
         .long("diffable")
         .help("Make output more friendly towards tools such as `diff`")
