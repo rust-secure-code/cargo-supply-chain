@@ -41,7 +41,7 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
         command.manifest_path(path);
     }
     if let Some(target) = args.target {
-        command.other_options(vec![format!("--target={}", target)]);
+        command.other_options(vec![format!("--filter-platform={}", target)]);
     }
     // `cargo-metadata` crate assumes we have a Vec of features,
     // but we really didn't want to parse it ourselves, so we pass the argument directly
