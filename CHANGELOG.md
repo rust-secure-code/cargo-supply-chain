@@ -1,3 +1,16 @@
+## v0.3.0 (unreleased)
+
+ - Dropped the `help` subcommand. Use `--help` instead, e.g. `cargo supply-chain crates --help`
+ - Renamed `--cache_max_age` to `--cache-max-age` for consistency with Cargo flags
+ - Accept flags such as `--target` directly, without relying on the escape hatch of passing cargo metadata arguments after `--`
+ - No longer default to `--all-features`, handle features via the same flags as Cargo itself
+
+Internal improvements:
+
+ - Migrate to bpaf CLI parser, chosen for its balance of expressiveness vs complexity and supply chain sprawl
+ - Add tests for the CLI interface
+ - Do not regenerate the JSON schema on every build; saves a bit of build time and a bit of dependencies in production builds
+
 ## v0.2.0 (2021-05-21)
 
 - Added `json` subcommand providing structured output and more details
