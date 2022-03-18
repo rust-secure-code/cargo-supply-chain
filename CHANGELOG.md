@@ -1,4 +1,4 @@
-## v0.3.0 (unreleased)
+## v0.3.0 (2021-03-18)
 
  - Renamed `--cache_max_age` to `--cache-max-age` for consistency with Cargo flags
  - Accept flags such as `--target` directly, without relying on the escape hatch of passing cargo metadata arguments after `--`
