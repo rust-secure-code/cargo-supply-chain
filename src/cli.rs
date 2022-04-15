@@ -26,6 +26,9 @@ pub(crate) enum CliArgs {
     JsonSchema {
         print_schema: (),
     },
+    Lines {
+        meta_args: MetadataArgs,
+    },
     Update {
         cache_max_age: Duration,
     },
@@ -156,7 +159,16 @@ Instead, rely on requests to the live API - they are slower, but use much less d
         update,
     );
 
-    let parser = publishers.or_else(crates).or_else(json).or_else(update);
+    let meta_args = metadata_args_parser.clone();
+    let lines = construct!(CliArgs::Lines { meta_args });
+    let lines = Info::default().for_parser(lines);
+    let lines = command(
+        "lines",
+        Some("Lines of code"), //TODO
+        lines,
+    );
+
+    let parser = publishers.or_else(crates).or_else(json).or_else(update).or_else(lines);
     let parser = cargo_helper("supply-chain", parser);
 
     Info::default()

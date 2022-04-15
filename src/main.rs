@@ -39,6 +39,7 @@ fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {
             subcommands::print_schema()?;
         }
         CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
+        CliArgs::Lines { meta_args } => subcommands::lines(meta_args),
     }
 
     Ok(())
