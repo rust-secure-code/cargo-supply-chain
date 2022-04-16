@@ -28,9 +28,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bpaf"
-version = "0.3.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5444c3016c57b548d9e45e85cddaaa987a48449148f464ba4af854e95fb46a01"
+checksum = "d3ae2b3ab2d9236fe90d83db056d4a63a216bc3a3b9efe8ba5c79bef60cd07b5"
 
 [[package]]
 name = "bstr"
