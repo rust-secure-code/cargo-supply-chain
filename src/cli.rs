@@ -31,12 +31,8 @@ pub(crate) enum CliArgs {
     },
 }
 
-pub(crate) fn args_parser() -> OptionParser<CliArgs> {
-    let diffable = short('d')
-        .long("diffable")
-        .help("Make output more friendly towards tools such as `diff`")
-        .switch();
-    let cache_max_age_parser = long("cache-max-age")
+fn cache_max_age() -> Parser<Duration> {
+    long("cache-max-age")
         .help(
             "\
 The cache will be considered valid while younger than specified.
@@ -45,13 +41,21 @@ If not specified, the cache is considered valid for 48 hours.",
         )
         .argument("AGE")
         .parse(|text| humantime::parse_duration(&text))
-        .fallback(Duration::from_secs(48 * 3600));
-    let cache_max_age = cache_max_age_parser.clone();
-    let args_parser = construct!(QueryCommandArgs {
-        cache_max_age,
-        diffable,
-    });
+        .fallback(Duration::from_secs(48 * 3600))
+}
 
+fn args() -> Parser<QueryCommandArgs> {
+    let diffable = short('d')
+        .long("diffable")
+        .help("Make output more friendly towards tools such as `diff`")
+        .switch();
+    construct!(QueryCommandArgs {
+        cache_max_age(),
+        diffable,
+    })
+}
+
+fn metadata_args() -> Parser<MetadataArgs> {
     let all_features = long("all-features")
         .help("Activate all available features")
         .switch();
@@ -69,17 +73,18 @@ If not specified, the cache is considered valid for 48 hours.",
     let manifest_path = long("manifest-path")
         .help("Path to Cargo.toml")
         .argument_os("PATH")
-        .map(|s| PathBuf::from(s))
+        .map(PathBuf::from)
         .optional();
-
-    let metadata_args_parser = construct!(MetadataArgs {
+    construct!(MetadataArgs {
         all_features,
         no_default_features,
         features,
         target,
         manifest_path,
-    });
+    })
+}
 
+pub(crate) fn args_parser() -> OptionParser<CliArgs> {
     fn subcommand_with_common_args(
         command_name: &'static str,
         args: Parser<QueryCommandArgs>,
@@ -103,10 +108,21 @@ If not specified, the cache is considered valid for 48 hours.",
         command(command_name, Some(descr), parser)
     }
 
+    /*
+        let publishers_short = "List all crates.io publishers in the depedency graph";
+        let publishers_long =
+            "Lists all crates.io publishers in the dependency graph and owned crates for each
+
+    If a local cache created by 'update' subcommand is present and up to date,
+    it will be used. Otherwise live data will be fetched from the crates.io API.";*/
+    //    let publishers = Info::default()
+    //        .descr(publishers_long)
+    //        .for_parser(construct!(CliArgs::Publishers { args(), meta_args() }));
+
     let publishers = subcommand_with_common_args(
         "publishers",
-        args_parser.clone(),
-        metadata_args_parser.clone(),
+        args(),
+        metadata_args(),
         "List all crates.io publishers in the depedency graph",
         "Lists all crates.io publishers in the dependency graph and owned crates for each
 
@@ -115,8 +131,8 @@ it will be used. Otherwise live data will be fetched from the crates.io API.",
     );
     let crates = subcommand_with_common_args(
         "crates",
-        args_parser.clone(),
-        metadata_args_parser.clone(),
+        args(),
+        metadata_args(),
         "List all crates in dependency graph and crates.io publishers for each",
         "Lists all crates in dependency graph and crates.io publishers for each
 
@@ -125,8 +141,8 @@ it will be used. Otherwise live data will be fetched from the crates.io API.",
     );
     let json = subcommand_with_common_args(
         "json",
-        args_parser.clone(),
-        metadata_args_parser.clone(),
+        args(),
+        metadata_args(),
         "Like 'crates', but in JSON and with more fields for each publisher",
         "Detailed info on publishers of all crates in the dependency graph, in JSON
 
@@ -136,15 +152,14 @@ If a local cache created by 'update' subcommand is present and up to date,
 it will be used. Otherwise live data will be fetched from the crates.io API.",
     );
 
-    let cache_max_age = cache_max_age_parser.clone();
-    let update = construct!(CliArgs::Update { cache_max_age });
+    let update = construct!(CliArgs::Update { cache_max_age() });
     let update = Info::default()
         .descr(
             "Download the latest daily dump from crates.io to speed up other commands
 
 If the local cache is already younger than specified in '--cache-max-age' option,
 a newer version will not be downloaded.
-        
+
 Note that this downloads the entire crates.io database, which is hundreds of Mb of data!
 If you are on a metered connection, you should not be running the 'update' subcommand.
 Instead, rely on requests to the live API - they are slower, but use much less data.",
