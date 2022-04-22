@@ -1,7 +1,8 @@
+use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CratesCache, DownloadState};
-use crate::{api_client::RateLimitedClient, err_exit};
+use anyhow::anyhow;
 
-pub fn update(max_age: std::time::Duration) {
+pub fn update(max_age: std::time::Duration) -> Result<(), anyhow::Error> {
     let mut cache = CratesCache::new();
     let mut client = RateLimitedClient::new();
 
@@ -11,8 +12,9 @@ pub fn update(max_age: std::time::Duration) {
             DownloadState::Expired => {
                 eprintln!("Successfully updated to the newest daily data dump.")
             }
-            DownloadState::Stale => err_exit("Downloaded latest daily data dump.\n  Warning: it matches the previous version that was considered outdated.")
+            DownloadState::Stale => return Err(anyhow!("Downloaded latest daily data dump.\n  Warning: it matches the previous version that was considered outdated."))
         },
-        Err(error) => err_exit(format!("Could not update to the latest daily data dump!\n{}", error).as_str())
+        Err(error) => return Err(anyhow!("Could not update to the latest daily data dump!\n{}", error))
     }
+    Ok(())
 }

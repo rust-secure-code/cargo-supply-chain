@@ -19,12 +19,12 @@ mod subcommands;
 use cli::CliArgs;
 use common::MetadataArgs;
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), anyhow::Error> {
     let args = cli::args_parser().run();
     dispatch_command(args)
 }
 
-fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {
+fn dispatch_command(args: CliArgs) -> Result<(), anyhow::Error> {
     match args {
         CliArgs::Publishers { args, meta_args } => {
             subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?
@@ -38,18 +38,8 @@ fn dispatch_command(args: CliArgs) -> Result<(), std::io::Error> {
         CliArgs::JsonSchema { print_schema: () } => {
             subcommands::print_schema()?;
         }
-        CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age),
+        CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age)?,
     }
 
     Ok(())
-}
-
-// TODO: remove all uses of this and return error from the function instead
-pub(crate) fn err_exit(msg: &str) -> ! {
-    match msg.into() {
-        Some(v) => eprintln!("{}", v),
-        None => (),
-    };
-
-    std::process::exit(1)
 }

@@ -29,9 +29,9 @@ pub fn json(
     args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
-) -> Result<(), std::io::Error> {
+) -> Result<(), anyhow::Error> {
     let mut output = StructuredOutput::default();
-    let dependencies = sourced_dependencies(args);
+    let dependencies = sourced_dependencies(args)?;
     // Report non-crates.io dependencies
     output.not_audited.local_crates = crate_names_from_source(&dependencies, PkgSource::Local);
     output.not_audited.foreign_crates = crate_names_from_source(&dependencies, PkgSource::Foreign);
