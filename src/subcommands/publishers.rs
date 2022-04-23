@@ -8,8 +8,8 @@ pub fn publishers(
     metadata_args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
-) -> Result<(), std::io::Error> {
-    let dependencies = sourced_dependencies(metadata_args);
+) -> Result<(), anyhow::Error> {
+    let dependencies = sourced_dependencies(metadata_args)?;
     complain_about_non_crates_io_crates(&dependencies);
     let (publisher_users, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
 

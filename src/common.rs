@@ -1,4 +1,4 @@
-use crate::err_exit;
+use anyhow::bail;
 use cargo_metadata::{
     CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
 };
@@ -53,12 +53,14 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
     command
 }
 
-pub fn sourced_dependencies(metadata_args: MetadataArgs) -> Vec<SourcedPackage> {
+pub fn sourced_dependencies(
+    metadata_args: MetadataArgs,
+) -> Result<Vec<SourcedPackage>, anyhow::Error> {
     let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
-        Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => err_exit(&e),
-        Err(err) => err_exit(format!("Failed to fetch crate metadata!\n  {}", err).as_str()),
+        Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => bail!(e),
+        Err(err) => bail!("Failed to fetch crate metadata!\n  {}", err),
     };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
@@ -97,7 +99,7 @@ pub fn sourced_dependencies(metadata_args: MetadataArgs) -> Vec<SourcedPackage> 
         })
         .collect();
 
-    dependencies
+    Ok(dependencies)
 }
 
 pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<String> {
