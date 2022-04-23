@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::bail;
 use cargo_metadata::{
     CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
 };
@@ -59,8 +59,8 @@ pub fn sourced_dependencies(
     let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
-        Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => return Err(anyhow!(e)),
-        Err(err) => return Err(anyhow!("Failed to fetch crate metadata!\n  {}", err)),
+        Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => bail!(e),
+        Err(err) => return bail!("Failed to fetch crate metadata!\n  {}", err),
     };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
