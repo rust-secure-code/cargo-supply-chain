@@ -53,9 +53,7 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
     command
 }
 
-pub fn sourced_dependencies(
-    metadata_args: MetadataArgs,
-) -> anyhow::Result<Vec<SourcedPackage>> {
+pub fn sourced_dependencies(metadata_args: MetadataArgs) -> anyhow::Result<Vec<SourcedPackage>> {
     let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
