@@ -29,7 +29,7 @@ pub fn json(
     args: MetadataArgs,
     diffable: bool,
     max_age: std::time::Duration,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let mut output = StructuredOutput::default();
     let dependencies = sourced_dependencies(args)?;
     // Report non-crates.io dependencies
