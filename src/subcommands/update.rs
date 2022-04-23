@@ -2,7 +2,7 @@ use crate::api_client::RateLimitedClient;
 use crate::crates_cache::{CratesCache, DownloadState};
 use anyhow::bail;
 
-pub fn update(max_age: std::time::Duration) -> anyhow::Result<()> {
+pub fn update(max_age: std::time::Duration) -> Result<(), anyhow::Error> {
     let mut cache = CratesCache::new();
     let mut client = RateLimitedClient::new();
 

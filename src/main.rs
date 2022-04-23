@@ -19,12 +19,12 @@ mod subcommands;
 use cli::CliArgs;
 use common::MetadataArgs;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), anyhow::Error> {
     let args = cli::args_parser().run();
     dispatch_command(args)
 }
 
-fn dispatch_command(args: CliArgs) -> anyhow::Result<()> {
+fn dispatch_command(args: CliArgs) -> Result<(), anyhow::Error> {
     match args {
         CliArgs::Publishers { args, meta_args } => {
             subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?
