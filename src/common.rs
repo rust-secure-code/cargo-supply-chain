@@ -60,7 +60,7 @@ pub fn sourced_dependencies(
     let meta = match command.exec() {
         Ok(v) => v,
         Err(cargo_metadata::Error::CargoMetadata { stderr: e }) => bail!(e),
-        Err(err) => return bail!("Failed to fetch crate metadata!\n  {}", err),
+        Err(err) => bail!("Failed to fetch crate metadata!\n  {}", err),
     };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
