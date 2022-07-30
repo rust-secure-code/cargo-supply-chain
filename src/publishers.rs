@@ -169,7 +169,7 @@ pub fn fetch_owners_of_crates(
     .with_prefix("Preparing")
     .with_style(
         indicatif::ProgressStyle::default_bar()
-        .template("{prefix:>12.bright.cyan} [{bar:27}] {pos:>4}/{len:4} ETA {eta:3} - {msg:.cyan}")
+        .template("{prefix:>12.bright.cyan} [{bar:27}] {pos:>4}/{len:4} ETA {eta:3} - {msg:.cyan}").unwrap()
         .progress_chars("=> ")
     );
 

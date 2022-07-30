@@ -130,7 +130,8 @@ impl CratesCache {
             .with_prefix("Downloading")
             .with_style(
                 indicatif::ProgressStyle::default_spinner()
-                    .template("{prefix:>12.bright.cyan} {spinner} {msg:.cyan}"),
+                    .template("{prefix:>12.bright.cyan} {spinner} {msg:.cyan}")
+                    .unwrap(),
             )
             .with_message("preparing");
 
@@ -164,14 +165,14 @@ impl CratesCache {
         {
             bar.set_style(
                 indicatif::ProgressStyle::default_bar()
-                    .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec}  ETA {eta:4} - {msg:.cyan}")
+                    .template("{prefix:>12.bright.cyan} [{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec}  ETA {eta:4} - {msg:.cyan}").unwrap()
                     .progress_chars("=> "));
             bar.set_length(length);
         } else {
             bar.println("Length unspecified, expect at least 250MiB");
             bar.set_style(indicatif::ProgressStyle::default_spinner().template(
                 "{prefix:>12.bright.cyan} {spinner} {bytes:>9} {bytes_per_sec} - {msg:.cyan}",
-            ));
+            ).unwrap());
         }
 
         let etag = response.header("etag").map(String::from);
