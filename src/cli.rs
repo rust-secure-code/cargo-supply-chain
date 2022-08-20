@@ -166,13 +166,9 @@ See 'cargo supply-chain <command> --help' for more information on a specific com
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsStr;
-
     use super::*;
 
-    fn parse_args<T: AsRef<OsStr> + ?Sized>(args: &[&T]) -> Result<CliArgs, ParseFailure> {
-        let args: Vec<&OsStr> = args.iter().map(|a| a.as_ref()).collect();
-        let args: &[&OsStr] = &args;
+    fn parse_args(args: &[&str]) -> Result<CliArgs, ParseFailure> {
         args_parser().run_inner(Args::from(args))
     }
 
