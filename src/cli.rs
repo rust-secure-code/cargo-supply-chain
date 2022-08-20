@@ -23,9 +23,7 @@ pub(crate) enum CliArgs {
         args: QueryCommandArgs,
         meta_args: MetadataArgs,
     },
-    JsonSchema {
-        print_schema: (),
-    },
+    JsonSchema,
     Update {
         cache_max_age: Duration,
     },
@@ -113,11 +111,10 @@ it will be used. Otherwise live data will be fetched from the crates.io API.";
     let json = {
         let print_schema = long("print-schema")
             .help("Print JSON schema and exit")
-            .req_flag(());
+            .req_flag(CliArgs::JsonSchema);
         let json = construct!(CliArgs::Json { args(), meta_args() });
-        let jschema = construct!(CliArgs::JsonSchema { print_schema });
 
-        let parser = construct!([json, jschema]);
+        let parser = construct!([json, print_schema]);
 
         let parser = parser.to_options().descr(
             "Detailed info on publishers of all crates in the dependency graph, in JSON
