@@ -83,46 +83,43 @@ fn meta_args() -> impl Parser<MetadataArgs> {
 }
 
 pub(crate) fn args_parser() -> OptionParser<CliArgs> {
-    let publishers = {
-        let publishers_long = "\
+    let publishers = construct!(CliArgs::Publishers { args(), meta_args() })
+        .to_options()
+        .descr("Lists all crates.io publishers in the dependency graph and owned crates for each")
+        .header(
+            "\
 If a local cache created by 'update' subcommand is present and up to date,
-it will be used. Otherwise live data will be fetched from the crates.io API.";
-        let publishers_short =
-            "Lists all crates.io publishers in the dependency graph and owned crates for each";
-        let parser = construct!(CliArgs::Publishers { args(), meta_args() })
-            .to_options()
-            .descr(publishers_short)
-            .header(publishers_long);
+it will be used. Otherwise live data will be fetched from the crates.io API.",
+        )
+        .command("publishers");
 
-        command("publishers", parser)
-    };
-
-    let crates = {
-        let parser = construct!(CliArgs::Crates { args(), meta_args() });
-        let crates_long = "\
+    let crates = (construct!(CliArgs::Crates { args(), meta_args() }))
+        .to_options()
+        .descr("List all crates in dependency graph and crates.io publishers for each")
+        .header(
+            "\
 If a local cache created by 'update' subcommand is present and up to date,
-it will be used. Otherwise live data will be fetched from the crates.io API.";
-        let crates_short = "List all crates in dependency graph and crates.io publishers for each";
-        let parser = parser.to_options().descr(crates_short).header(crates_long);
-        command("crates", parser)
-    };
+it will be used. Otherwise live data will be fetched from the crates.io API.",
+        )
+        .command("crates");
 
     let json = {
         let print_schema = long("print-schema")
             .help("Print JSON schema and exit")
             .req_flag(CliArgs::JsonSchema);
         let json = construct!(CliArgs::Json { args(), meta_args() });
-        let parser = (construct!([json, print_schema])).to_options().descr(
-            "\
+        (construct!([json, print_schema]))
+            .to_options()
+            .descr(
+                "\
 Detailed info on publishers of all crates in the dependency graph, in JSON
 
 The JSON schema is also available, use --print-schema to get it.
 
 If a local cache created by 'update' subcommand is present and up to date,
 it will be used. Otherwise live data will be fetched from the crates.io API.",
-        );
-
-        command("json", parser)
+            )
+            .command("json")
             .help("Like 'crates', but in JSON and with more fields for each publisher")
     };
 
@@ -138,9 +135,8 @@ a newer version will not be downloaded.
 Note that this downloads the entire crates.io database, which is hundreds of Mb of data!
 If you are on a metered connection, you should not be running the 'update' subcommand.
 Instead, rely on requests to the live API - they are slower, but use much less data.",
-        );
-
-    let update = command("update", update)
+        )
+        .command("update")
         .help("Download the latest daily dump from crates.io to speed up other commands");
 
     cargo_helper(
