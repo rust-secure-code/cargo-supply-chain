@@ -37,7 +37,7 @@ The cache will be considered valid while younger than specified.
 The format is a human readable duration such as `1w` or `1d 6h`.
 If not specified, the cache is considered valid for 48 hours.",
         )
-        .argument("AGE")
+        .argument::<String>("AGE")
         .parse(|text| humantime::parse_duration(&text))
         .fallback(Duration::from_secs(48 * 3600))
 }
@@ -62,15 +62,15 @@ fn meta_args() -> impl Parser<MetadataArgs> {
         .switch();
     let features = long("features")
         .help("Space or comma separated list of features to activate")
-        .argument("FEATURES")
+        .argument::<String>("FEATURES")
         .optional();
     let target = long("target")
         .help("Only include dependencies matching the given target-triple")
-        .argument("TRIPLE")
+        .argument::<String>("TRIPLE")
         .optional();
     let manifest_path = long("manifest-path")
         .help("Path to Cargo.toml")
-        .argument_os("PATH")
+        .argument::<PathBuf>("PATH")
         .map(PathBuf::from)
         .optional();
     construct!(MetadataArgs {
