@@ -10,7 +10,7 @@ use std::{
 #[cfg(test)]
 use schemars::JsonSchema;
 
-use crate::common::*;
+use crate::common::{crate_names_from_source, PkgSource, SourcedPackage};
 
 #[derive(Deserialize)]
 struct UsersResponse {
@@ -95,7 +95,7 @@ fn get_with_retry(
     attempts: u8,
 ) -> Result<ureq::Response, io::Error> {
     let mut resp = client
-        .get(&url)
+        .get(url)
         .call()
         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
@@ -109,7 +109,7 @@ fn get_with_retry(
         std::thread::sleep(std::time::Duration::from_secs(wait));
 
         resp = client
-            .get(&url)
+            .get(url)
             .call()
             .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
@@ -130,7 +130,7 @@ pub fn fetch_owners_of_crates(
     ),
     io::Error,
 > {
-    let crates_io_names = crate_names_from_source(&dependencies, PkgSource::CratesIo);
+    let crates_io_names = crate_names_from_source(dependencies, PkgSource::CratesIo);
     let mut client = RateLimitedClient::new();
     let mut cached = CratesCache::new();
     let using_cache = match cached.expire(max_age) {

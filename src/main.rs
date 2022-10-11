@@ -27,13 +27,13 @@ fn main() -> Result<(), anyhow::Error> {
 fn dispatch_command(args: CliArgs) -> Result<(), anyhow::Error> {
     match args {
         CliArgs::Publishers { args, meta_args } => {
-            subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?
+            subcommands::publishers(meta_args, args.diffable, args.cache_max_age)?;
         }
         CliArgs::Crates { args, meta_args } => {
-            subcommands::crates(meta_args, args.diffable, args.cache_max_age)?
+            subcommands::crates(meta_args, args.diffable, args.cache_max_age)?;
         }
         CliArgs::Json { args, meta_args } => {
-            subcommands::json(meta_args, args.diffable, args.cache_max_age)?
+            subcommands::json(meta_args, args.diffable, args.cache_max_age)?;
         }
         CliArgs::JsonSchema => {
             subcommands::print_schema()?;

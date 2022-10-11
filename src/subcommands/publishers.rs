@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::publishers::fetch_owners_of_crates;
 use crate::MetadataArgs;
-use crate::{common::*, publishers::PublisherData};
+use crate::{
+    common::{comma_separated_list, complain_about_non_crates_io_crates, sourced_dependencies},
+    publishers::PublisherData,
+};
 
 pub fn publishers(
     metadata_args: MetadataArgs,
@@ -24,8 +27,8 @@ pub fn publishers(
     if diffable {
         // empty map just means 0 loop iterations here
         let sorted_map = sort_transposed_map_for_diffing(user_to_crate_map);
-        for (user, crates) in sorted_map.iter() {
-            let crate_list = comma_separated_list(&crates);
+        for (user, crates) in &sorted_map {
+            let crate_list = comma_separated_list(crates);
             println!("user \"{}\": {}", &user.login, crate_list);
         }
     } else if !publisher_users.is_empty() {
@@ -34,7 +37,7 @@ pub fn publishers(
         for (i, (user, crates)) in map_for_display.iter().enumerate() {
             // We do not print usernames, since you can embed terminal control sequences in them
             // and erase yourself from the output that way.
-            let crate_list = comma_separated_list(&crates);
+            let crate_list = comma_separated_list(crates);
             println!(" {}. {} via crates: {}", i + 1, &user.login, crate_list);
         }
         eprintln!("\nNote: there may be outstanding publisher invitations. crates.io provides no way to list them.");
@@ -43,8 +46,8 @@ pub fn publishers(
 
     if diffable {
         let sorted_map = sort_transposed_map_for_diffing(team_to_crate_map);
-        for (team, crates) in sorted_map.iter() {
-            let crate_list = comma_separated_list(&crates);
+        for (team, crates) in &sorted_map {
+            let crate_list = comma_separated_list(crates);
             println!("team \"{}\": {}", &team.login, crate_list);
         }
     } else if !publisher_teams.is_empty() {
@@ -53,7 +56,7 @@ pub fn publishers(
         );
         let map_for_display = sort_transposed_map_for_display(team_to_crate_map);
         for (i, (team, crates)) in map_for_display.iter().enumerate() {
-            let crate_list = comma_separated_list(&crates);
+            let crate_list = comma_separated_list(crates);
             if let (true, Some(org)) = (
                 team.login.starts_with("github:"),
                 team.login.split(':').nth(1),
@@ -75,7 +78,7 @@ pub fn publishers(
 }
 
 /// Turns a crate-to-publishers mapping into publisher-to-crates mapping.
-/// BTreeMap is used because PublisherData doesn't implement Hash.
+/// [`BTreeMap`] is used because [`PublisherData`] doesn't implement Hash.
 fn transpose_publishers_map(
     input: &BTreeMap<String, Vec<PublisherData>>,
 ) -> BTreeMap<PublisherData, Vec<String>> {
