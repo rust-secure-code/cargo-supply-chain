@@ -1,6 +1,6 @@
 use crate::common::MetadataArgs;
 use bpaf::*;
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
 /// Arguments for typical querying commands - crates, publishers, json
 #[derive(Clone, Debug)]
@@ -62,16 +62,15 @@ fn meta_args() -> impl Parser<MetadataArgs> {
         .switch();
     let features = long("features")
         .help("Space or comma separated list of features to activate")
-        .argument::<String>("FEATURES")
+        .argument("FEATURES")
         .optional();
     let target = long("target")
         .help("Only include dependencies matching the given target-triple")
-        .argument::<String>("TRIPLE")
+        .argument("TRIPLE")
         .optional();
     let manifest_path = long("manifest-path")
         .help("Path to Cargo.toml")
-        .argument::<PathBuf>("PATH")
-        .map(PathBuf::from)
+        .argument("PATH")
         .optional();
     construct!(MetadataArgs {
         all_features,
