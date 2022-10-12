@@ -25,3 +25,7 @@ anyhow = "1.0.28"
 
 [dev-dependencies]
 schemars = "0.8.3"
+
+[features]
+bright-color = ["bpaf/bright-color"]
+dull-color = ["bpaf/dull-color"]

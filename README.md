@@ -50,6 +50,14 @@ Most commands also accept flags controlling the features, targets, etc.
 See 'cargo supply-chain <command> --help' for more information on a specific command.
 ```
 
+## Colorful line parser output
+
+You can install `cargo-supply-chain` with one of two features to get prettier command line
+```console
+cargo install cargo-supply-chain -F bright-color
+cargo install cargo-supply-chain -F dull-color
+```
+
 ## License
 
 Triple licensed under any of Apache-2.0, MIT, or zlib terms.
