@@ -32,13 +32,13 @@ fn dispatch_command(args: CliArgs) -> Result<(), anyhow::Error> {
         CliArgs::Crates { args, meta_args } => {
             subcommands::crates(meta_args, args.diffable, args.cache_max_age)?;
         }
-        CliArgs::Json { args, meta_args } => {
-            subcommands::json(meta_args, args.diffable, args.cache_max_age)?;
-        }
-        CliArgs::JsonSchema => {
-            subcommands::print_schema()?;
-        }
         CliArgs::Update { cache_max_age } => subcommands::update(cache_max_age)?,
+        CliArgs::Json(json) => match json {
+            cli::PrintJson::Schema => subcommands::print_schema()?,
+            cli::PrintJson::Info { args, meta_args } => {
+                subcommands::json(meta_args, args.diffable, args.cache_max_age)?;
+            }
+        },
     }
 
     Ok(())
