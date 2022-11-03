@@ -1,7 +1,10 @@
 //! `json` subcommand is equivalent to `crates`,
 //! but provides structured output and more info about each publisher.
 use crate::publishers::{fetch_owners_of_crates, PublisherData};
-use crate::{common::*, MetadataArgs};
+use crate::{
+    common::{crate_names_from_source, sourced_dependencies, PkgSource},
+    MetadataArgs,
+};
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -41,12 +44,12 @@ pub fn json(
     let (mut owners, publisher_teams) = fetch_owners_of_crates(&dependencies, max_age)?;
     // Merge the two maps we received into one
     for (crate_name, publishers) in publisher_teams {
-        owners.entry(crate_name).or_default().extend(publishers)
+        owners.entry(crate_name).or_default().extend(publishers);
     }
     // Sort the vectors of publisher data. This helps when diffing the output,
     // but we do it unconditionally because it's cheap and helps users pull less hair when debugging.
     for list in owners.values_mut() {
-        list.sort_unstable_by_key(|x| x.id)
+        list.sort_unstable_by_key(|x| x.id);
     }
     output.crates_io_crates = owners;
     // Print the result to stdout

@@ -28,7 +28,7 @@ impl RateLimitedClient {
     }
 
     /// Waits until at least 1 second has elapsed since last request,
-    /// as per https://crates.io/data-access
+    /// as per <https://crates.io/data-access>
     fn wait_to_honor_rate_limit(&mut self) {
         if let Some(prev_req_time) = self.last_request_time {
             let next_req_time = prev_req_time + Duration::from_secs(1);

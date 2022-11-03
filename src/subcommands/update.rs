@@ -10,9 +10,9 @@ pub fn update(max_age: std::time::Duration) -> Result<(), anyhow::Error> {
         Ok(state) => match state {
             DownloadState::Fresh => eprintln!("No updates found"),
             DownloadState::Expired => {
-                eprintln!("Successfully updated to the newest daily data dump.")
+                eprintln!("Successfully updated to the newest daily data dump.");
             }
-            DownloadState::Stale => bail!("Downloaded latest daily data dump.\n  Warning: it matches the previous version that was considered outdated.")
+            DownloadState::Stale => bail!("Downloaded latest daily data dump.\n  Warning: it matches the previous version that was considered outdated."),
         },
         Err(error) => bail!("Could not update to the latest daily data dump!\n{}", error)
     }

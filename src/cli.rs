@@ -1,30 +1,113 @@
-use crate::common::MetadataArgs;
 use bpaf::*;
 use std::{path::PathBuf, time::Duration};
 
+/// Arguments to be passed to `cargo metadata`
+#[derive(Clone, Debug, Bpaf)]
+#[bpaf(generate(meta_args))]
+pub struct MetadataArgs {
+    // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
+    // in the sense that it will not error out when encontering them; it just follows `all_features`
+    /// Activate all available features
+    pub all_features: bool,
+
+    /// Do not activate the `default` feature
+    pub no_default_features: bool,
+
+    // This is a `String` because we don't parse the value, just pass it on to `cargo metadata` blindly
+    /// Space or comma separated list of features to activate
+    #[bpaf(argument("FEATURES"))]
+    pub features: Option<String>,
+
+    /// Only include dependencies matching the given target-triple
+    #[bpaf(argument("TRIPLE"))]
+    pub target: Option<String>,
+
+    /// Path to Cargo.toml
+    #[bpaf(argument("PATH"))]
+    pub manifest_path: Option<PathBuf>,
+}
+
 /// Arguments for typical querying commands - crates, publishers, json
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Bpaf)]
+#[bpaf(generate(args))]
 pub(crate) struct QueryCommandArgs {
+    #[bpaf(external)]
     pub cache_max_age: Duration,
+
+    /// Make output more friendly towards tools such as `diff`
+    #[bpaf(short, long)]
     pub diffable: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Bpaf)]
+pub(crate) enum PrintJson {
+    /// Print JSON schema and exit
+    #[bpaf(long("print-schema"))]
+    Schema,
+
+    Info {
+        #[bpaf(external)]
+        args: QueryCommandArgs,
+        #[bpaf(external)]
+        meta_args: MetadataArgs,
+    },
+}
+
+/// Gather author, contributor and publisher data on crates in your dependency graph
+///
+///
+/// Most commands also accept flags controlling the features, targets, etc.
+/// See 'cargo supply-chain <command> --help' for more information on a specific command.
+#[derive(Clone, Debug, Bpaf)]
+#[bpaf(options("supply-chain"), generate(args_parser), version)]
 pub(crate) enum CliArgs {
+    /// Lists all crates.io publishers in the dependency graph and owned crates for each
+    ///
+    ///
+    /// If a local cache created by 'update' subcommand is present and up to date,
+    /// it will be used. Otherwise live data will be fetched from the crates.io API.
+    #[bpaf(command)]
     Publishers {
+        #[bpaf(external)]
         args: QueryCommandArgs,
+        #[bpaf(external)]
         meta_args: MetadataArgs,
     },
+
+    /// List all crates in dependency graph and crates.io publishers for each
+    ///
+    ///
+    /// If a local cache created by 'update' subcommand is present and up to date,
+    /// it will be used. Otherwise live data will be fetched from the crates.io API.
+    #[bpaf(command)]
     Crates {
+        #[bpaf(external)]
         args: QueryCommandArgs,
+        #[bpaf(external)]
         meta_args: MetadataArgs,
     },
-    Json {
-        args: QueryCommandArgs,
-        meta_args: MetadataArgs,
-    },
-    JsonSchema,
+
+    /// Detailed info on publishers of all crates in the dependency graph, in JSON
+    ///
+    /// The JSON schema is also available, use --print-schema to get it.
+    ///
+    /// If a local cache created by 'update' subcommand is present and up to date,
+    /// it will be used. Otherwise live data will be fetched from the crates.io API.",
+    #[bpaf(command)]
+    Json(#[bpaf(external(print_json))] PrintJson),
+
+    /// Download the latest daily dump from crates.io to speed up other commands
+    ///
+    ///
+    /// If the local cache is already younger than specified in '--cache-max-age' option,
+    /// a newer version will not be downloaded.
+    ///
+    /// Note that this downloads the entire crates.io database, which is hundreds of Mb of data!
+    /// If you are on a metered connection, you should not be running the 'update' subcommand.
+    /// Instead, rely on requests to the live API - they are slower, but use much less data.
+    #[bpaf(command)]
     Update {
+        #[bpaf(external)]
         cache_max_age: Duration,
     },
 }
@@ -40,117 +123,6 @@ If not specified, the cache is considered valid for 48 hours.",
         .argument::<String>("AGE")
         .parse(|text| humantime::parse_duration(&text))
         .fallback(Duration::from_secs(48 * 3600))
-}
-
-fn args() -> impl Parser<QueryCommandArgs> {
-    let diffable = short('d')
-        .long("diffable")
-        .help("Make output more friendly towards tools such as `diff`")
-        .switch();
-    construct!(QueryCommandArgs {
-        cache_max_age(),
-        diffable,
-    })
-}
-
-fn meta_args() -> impl Parser<MetadataArgs> {
-    let all_features = long("all-features")
-        .help("Activate all available features")
-        .switch();
-    let no_default_features = long("no-default-features")
-        .help("Do not activate the `default` feature")
-        .switch();
-    let features = long("features")
-        .help("Space or comma separated list of features to activate")
-        .argument::<String>("FEATURES")
-        .optional();
-    let target = long("target")
-        .help("Only include dependencies matching the given target-triple")
-        .argument::<String>("TRIPLE")
-        .optional();
-    let manifest_path = long("manifest-path")
-        .help("Path to Cargo.toml")
-        .argument::<PathBuf>("PATH")
-        .map(PathBuf::from)
-        .optional();
-    construct!(MetadataArgs {
-        all_features,
-        no_default_features,
-        features,
-        target,
-        manifest_path,
-    })
-}
-
-pub(crate) fn args_parser() -> OptionParser<CliArgs> {
-    let publishers = construct!(CliArgs::Publishers { args(), meta_args() })
-        .to_options()
-        .descr("Lists all crates.io publishers in the dependency graph and owned crates for each")
-        .header(
-            "\
-If a local cache created by 'update' subcommand is present and up to date,
-it will be used. Otherwise live data will be fetched from the crates.io API.",
-        )
-        .command("publishers");
-
-    let crates = (construct!(CliArgs::Crates { args(), meta_args() }))
-        .to_options()
-        .descr("List all crates in dependency graph and crates.io publishers for each")
-        .header(
-            "\
-If a local cache created by 'update' subcommand is present and up to date,
-it will be used. Otherwise live data will be fetched from the crates.io API.",
-        )
-        .command("crates");
-
-    let json = {
-        let print_schema = long("print-schema")
-            .help("Print JSON schema and exit")
-            .req_flag(CliArgs::JsonSchema);
-        let json = construct!(CliArgs::Json { args(), meta_args() });
-        (construct!([json, print_schema]))
-            .to_options()
-            .descr(
-                "\
-Detailed info on publishers of all crates in the dependency graph, in JSON
-
-The JSON schema is also available, use --print-schema to get it.
-
-If a local cache created by 'update' subcommand is present and up to date,
-it will be used. Otherwise live data will be fetched from the crates.io API.",
-            )
-            .command("json")
-            .help("Like 'crates', but in JSON and with more fields for each publisher")
-    };
-
-    let update = construct!(CliArgs::Update { cache_max_age() })
-        .to_options()
-        .descr(
-            "\
-Download the latest daily dump from crates.io to speed up other commands
-
-If the local cache is already younger than specified in '--cache-max-age' option,
-a newer version will not be downloaded.
-
-Note that this downloads the entire crates.io database, which is hundreds of Mb of data!
-If you are on a metered connection, you should not be running the 'update' subcommand.
-Instead, rely on requests to the live API - they are slower, but use much less data.",
-        )
-        .command("update")
-        .help("Download the latest daily dump from crates.io to speed up other commands");
-
-    cargo_helper(
-        "supply-chain",
-        construct!([publishers, crates, json, update]),
-    )
-    .to_options()
-    .version(env!("CARGO_PKG_VERSION"))
-    .descr("Gather author, contributor and publisher data on crates in your dependency graph")
-    .footer(
-        "\
-Most commands also accept flags controlling the features, targets, etc.
-See 'cargo supply-chain <command> --help' for more information on a specific command.",
-    )
 }
 
 #[cfg(test)]

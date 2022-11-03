@@ -2,12 +2,10 @@ use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
-use std::iter::FromIterator;
 use std::{
     collections::{BTreeSet, HashMap},
     fs,
     io::{self, ErrorKind},
-    mem,
     path::PathBuf,
     time::Duration,
     time::SystemTimeError,
@@ -141,9 +139,9 @@ impl CratesCache {
             if let Some(meta) = self.load_metadata() {
                 remembered_etag = meta.etag.clone();
                 // See if we can consider the resource not-yet-stale.
-                if let Some(true) = meta.validate(max_age) {
+                if meta.validate(max_age) == Some(true) {
                     if let Some(etag) = meta.etag.as_ref() {
-                        request = request.set("if-none-match", &etag);
+                        request = request.set("if-none-match", etag);
                     }
                 }
             } else {
@@ -182,74 +180,72 @@ impl CratesCache {
 
         let cache_dir = CratesCache::cache_dir().ok_or(ErrorKind::NotFound)?;
         let mut cache_updater = CacheUpdater::new(cache_dir)?;
-        let required_files = BTreeSet::from_iter(
-            [
-                Self::CRATE_OWNERS_FS,
-                Self::CRATES_FS,
-                Self::USERS_FS,
-                Self::TEAMS_FS,
-                Self::METADATA_FS,
-            ]
-            .iter()
-            .map(|x| x.to_string()),
-        );
-        for file in archive.entries()? {
-            if let Ok(entry) = file {
-                if let Ok(path) = entry.path() {
-                    if let Some(name) = path.file_name().and_then(|f| f.to_str()) {
-                        bar.set_message(name.to_string());
-                    }
+        let required_files = [
+            Self::CRATE_OWNERS_FS,
+            Self::CRATES_FS,
+            Self::USERS_FS,
+            Self::TEAMS_FS,
+            Self::METADATA_FS,
+        ]
+        .iter()
+        .map(ToString::to_string)
+        .collect::<BTreeSet<_>>();
+
+        for entry in (archive.entries()?).flatten() {
+            if let Ok(path) = entry.path() {
+                if let Some(name) = path.file_name().and_then(std::ffi::OsStr::to_str) {
+                    bar.set_message(name.to_string());
                 }
-                if entry.path_bytes().ends_with(b"crate_owners.csv") {
-                    let owners: Vec<CrateOwner> = read_csv_data(entry)?;
-                    cache_updater.store_multi_map(
-                        &mut self.crate_owners,
-                        Self::CRATE_OWNERS_FS,
-                        owners.as_slice(),
-                        &|owner| owner.crate_id,
-                    )?;
-                } else if entry.path_bytes().ends_with(b"crates.csv") {
-                    let crates: Vec<Crate> = read_csv_data(entry)?;
-                    cache_updater.store_map(
-                        &mut self.crates,
-                        Self::CRATES_FS,
-                        crates.as_slice(),
-                        &|crate_| crate_.name.clone(),
-                    )?;
-                } else if entry.path_bytes().ends_with(b"users.csv") {
-                    let users: Vec<User> = read_csv_data(entry)?;
-                    cache_updater.store_map(
-                        &mut self.users,
-                        Self::USERS_FS,
-                        users.as_slice(),
-                        &|user| user.id,
-                    )?;
-                } else if entry.path_bytes().ends_with(b"teams.csv") {
-                    let teams: Vec<Team> = read_csv_data(entry)?;
-                    cache_updater.store_map(
-                        &mut self.teams,
-                        Self::TEAMS_FS,
-                        teams.as_slice(),
-                        &|team| team.id,
-                    )?;
-                } else if entry.path_bytes().ends_with(b"metadata.json") {
-                    let meta: Metadata = serde_json::from_reader(entry)?;
-                    cache_updater.store(
-                        &mut self.metadata,
-                        Self::METADATA_FS,
-                        MetadataStored {
-                            timestamp: meta.timestamp,
-                            etag: etag.clone(),
-                        },
-                    )?;
-                } else {
-                    // This was not a file with a filename we actually use.
-                    // Check if we've obtained all the files we need.
-                    // If yes, we can end the download early.
-                    // This saves hundreds of megabytes of traffic.
-                    if required_files.is_subset(&cache_updater.staged_files) {
-                        break;
-                    }
+            }
+            if entry.path_bytes().ends_with(b"crate_owners.csv") {
+                let owners: Vec<CrateOwner> = read_csv_data(entry)?;
+                cache_updater.store_multi_map(
+                    &mut self.crate_owners,
+                    Self::CRATE_OWNERS_FS,
+                    owners.as_slice(),
+                    &|owner| owner.crate_id,
+                )?;
+            } else if entry.path_bytes().ends_with(b"crates.csv") {
+                let crates: Vec<Crate> = read_csv_data(entry)?;
+                cache_updater.store_map(
+                    &mut self.crates,
+                    Self::CRATES_FS,
+                    crates.as_slice(),
+                    &|crate_| crate_.name.clone(),
+                )?;
+            } else if entry.path_bytes().ends_with(b"users.csv") {
+                let users: Vec<User> = read_csv_data(entry)?;
+                cache_updater.store_map(
+                    &mut self.users,
+                    Self::USERS_FS,
+                    users.as_slice(),
+                    &|user| user.id,
+                )?;
+            } else if entry.path_bytes().ends_with(b"teams.csv") {
+                let teams: Vec<Team> = read_csv_data(entry)?;
+                cache_updater.store_map(
+                    &mut self.teams,
+                    Self::TEAMS_FS,
+                    teams.as_slice(),
+                    &|team| team.id,
+                )?;
+            } else if entry.path_bytes().ends_with(b"metadata.json") {
+                let meta: Metadata = serde_json::from_reader(entry)?;
+                cache_updater.store(
+                    &mut self.metadata,
+                    Self::METADATA_FS,
+                    MetadataStored {
+                        timestamp: meta.timestamp,
+                        etag: etag.clone(),
+                    },
+                )?;
+            } else {
+                // This was not a file with a filename we actually use.
+                // Check if we've obtained all the files we need.
+                // If yes, we can end the download early.
+                // This saves hundreds of megabytes of traffic.
+                if required_files.is_subset(&cache_updater.staged_files) {
+                    break;
                 }
             }
         }
@@ -452,7 +448,7 @@ impl CacheUpdater {
 
     /// Commits to disk any changes that you have staged via the `store()` function.
     fn commit(&mut self) -> io::Result<()> {
-        let mut uncommitted_files = mem::replace(&mut self.staged_files, BTreeSet::new());
+        let mut uncommitted_files = std::mem::take(&mut self.staged_files);
         let metadata_file = uncommitted_files.take(CratesCache::METADATA_FS);
         for file in uncommitted_files {
             let source = self.dir.join(&file).with_extension("part");
@@ -517,13 +513,13 @@ impl CacheUpdater {
         K: Serialize + Eq + std::hash::Hash,
     {
         let mut hashed: HashMap<K, _> = HashMap::new();
-        entries.iter().for_each(|entry| {
+        for entry in entries.iter() {
             let key = key_fn(entry);
             hashed
                 .entry(key)
                 .or_insert_with(Vec::new)
-                .push(entry.clone())
-        });
+                .push(entry.clone());
+        }
         self.store(cache, file, hashed)
     }
 }
