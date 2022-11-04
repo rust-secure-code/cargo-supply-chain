@@ -1,3 +1,7 @@
+## v0.3.2 (2022-11-04)
+
+ - Upgrade to `bpaf` 0.7
+
 ## v0.3.1 (2021-03-18)
 
  - Fix `--features` flag not being honored if `--target` is also passed
