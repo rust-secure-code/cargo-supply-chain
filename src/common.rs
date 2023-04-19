@@ -1,8 +1,9 @@
 use anyhow::bail;
 use cargo_metadata::{
-    CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
+    semver::VersionReq, CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, Dependency,
+    DependencyKind, MetadataCommand, Package, PackageId,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub use crate::cli::MetadataArgs;
 
@@ -45,6 +46,7 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
 pub fn sourced_dependencies(
     metadata_args: MetadataArgs,
 ) -> Result<Vec<SourcedPackage>, anyhow::Error> {
+    let no_dev = metadata_args.no_dev;
     let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
@@ -53,7 +55,7 @@ pub fn sourced_dependencies(
     };
 
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
-    let what: HashMap<PackageId, Package> = meta
+    let mut what: HashMap<PackageId, Package> = meta
         .packages
         .iter()
         .map(|package| (package.id.clone(), package.clone()))
@@ -77,6 +79,10 @@ pub fn sourced_dependencies(
         *how.get_mut(&pkg).unwrap() = PkgSource::Local;
     }
 
+    if no_dev {
+        (how, what) = extract_non_dev_dependencies(&mut how, &mut what);
+    }
+
     let dependencies: Vec<_> = how
         .iter()
         .map(|(id, kind)| {
@@ -89,6 +95,77 @@ pub fn sourced_dependencies(
         .collect();
 
     Ok(dependencies)
+}
+
+#[derive(Eq, Hash, PartialEq)]
+struct Dep {
+    name: String,
+    req: VersionReq,
+}
+
+impl Dep {
+    fn from_cargo_metadata_dependency(dep: &Dependency) -> Self {
+        Self {
+            name: dep.name.clone(),
+            req: dep.req.clone(),
+        }
+    }
+
+    fn matches(&self, pkg: &Package) -> bool {
+        self.name == pkg.name && self.req.matches(&pkg.version)
+    }
+}
+
+/// Start with the `PkgSource::Local` packages, then iteratively add non-dev-dependencies until no more
+/// packages can be added, and return the results.
+///
+/// Note that matching dependencies to packages is "best effort." The fields that Cargo uses to
+/// determine a package's id are its name, version, and source:
+/// https://github.com/rust-lang/cargo/blob/dd5134c7a59e3a3b8587f1ef04a930185d2ca503/src/cargo/core/package_id.rs#L29-L31
+///
+/// When matching dependencies to packages, we use the package's name and version, but not its source
+/// (see [`Dep`]). Experiments suggest that source strings can vary. So comparing them seems risky.
+/// Also, it is better to err on the side of inclusion.
+fn extract_non_dev_dependencies(
+    how: &mut HashMap<PackageId, PkgSource>,
+    what: &mut HashMap<PackageId, Package>,
+) -> (HashMap<PackageId, PkgSource>, HashMap<PackageId, Package>) {
+    let mut how_new = HashMap::new();
+    let mut what_new = HashMap::new();
+
+    let mut ids = how
+        .iter()
+        .filter_map(|(id, source)| {
+            if matches!(source, PkgSource::Local) {
+                Some(id.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    while !ids.is_empty() {
+        let mut deps = HashSet::new();
+
+        for id in ids.drain(..) {
+            for dep in &what.get(&id).unwrap().dependencies {
+                if dep.kind != DependencyKind::Development {
+                    deps.insert(Dep::from_cargo_metadata_dependency(dep));
+                }
+            }
+
+            how_new.insert(id.clone(), how.remove(&id).unwrap());
+            what_new.insert(id.clone(), what.remove(&id).unwrap());
+        }
+
+        for pkg in what.values() {
+            if deps.iter().any(|dep| dep.matches(pkg)) {
+                ids.push(pkg.id.clone());
+            }
+        }
+    }
+
+    (how_new, what_new)
 }
 
 pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<String> {

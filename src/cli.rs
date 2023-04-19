@@ -6,12 +6,15 @@ use std::{path::PathBuf, time::Duration};
 #[bpaf(generate(meta_args))]
 pub struct MetadataArgs {
     // `all_features` and `no_default_features` are not mutually exclusive in `cargo metadata`,
-    // in the sense that it will not error out when encontering them; it just follows `all_features`
+    // in the sense that it will not error out when encountering them; it just follows `all_features`
     /// Activate all available features
     pub all_features: bool,
 
     /// Do not activate the `default` feature
     pub no_default_features: bool,
+
+    /// Ignore dev-only dependencies
+    pub no_dev: bool,
 
     // This is a `String` because we don't parse the value, just pass it on to `cargo metadata` blindly
     /// Space or comma separated list of features to activate
