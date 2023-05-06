@@ -1,19 +1,22 @@
 use anyhow::bail;
 use cargo_metadata::{
     semver::VersionReq, CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, Dependency,
-    DependencyKind, MetadataCommand, Package, PackageId,
+    DependencyKind, Metadata, MetadataCommand, Package, PackageId,
 };
 use std::collections::{HashMap, HashSet};
 
 pub use crate::cli::MetadataArgs;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(test, derive(serde::Deserialize, serde::Serialize))]
 pub enum PkgSource {
     Local,
     CratesIo,
     Foreign,
 }
+
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(Eq, PartialEq, serde::Deserialize, serde::Serialize))]
 pub struct SourcedPackage {
     pub source: PkgSource,
     pub package: Package,
@@ -54,6 +57,13 @@ pub fn sourced_dependencies(
         Err(err) => bail!("Failed to fetch crate metadata!\n  {}", err),
     };
 
+    sourced_dependencies_from_metadata(meta, no_dev)
+}
+
+fn sourced_dependencies_from_metadata(
+    meta: Metadata,
+    no_dev: bool,
+) -> Result<Vec<SourcedPackage>, anyhow::Error> {
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
     let mut what: HashMap<PackageId, Package> = meta
         .packages
@@ -216,4 +226,92 @@ pub fn comma_separated_list(list: &[String]) -> String {
         result.push_str(crate_name.as_str());
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{sourced_dependencies_from_metadata, SourcedPackage};
+    use cargo_metadata::Metadata;
+    use std::{
+        cmp::Ordering,
+        env::var,
+        fs::{read_dir, read_to_string, write},
+        path::Path,
+    };
+
+    #[test]
+    fn deps() {
+        for entry in read_dir("dep_tests").unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            let Some(prefix) = path.to_string_lossy().strip_suffix(".metadata.json").map(ToOwned::to_owned) else {
+                continue;
+            };
+
+            let contents = read_to_string(&path).unwrap();
+
+            // Help ensure private information is not leaked.
+            assert!(var("HOME").map_or(true, |home| !contents.contains(&home)));
+
+            let metadata = serde_json::from_str::<Metadata>(&contents).unwrap();
+
+            for no_dev in [false, true] {
+                let path = prefix.clone() + ".deps" + if no_dev { "_no_dev" } else { "" } + ".json";
+
+                let mut deps_from_metadata =
+                    sourced_dependencies_from_metadata(metadata.clone(), no_dev).unwrap();
+                deps_from_metadata.sort_by(cmp_dep);
+
+                if enabled("BLESS") {
+                    let contents = serde_json::to_string_pretty(&deps_from_metadata).unwrap();
+                    write(path, &contents).unwrap();
+                    continue;
+                }
+
+                let mut deps_from_file = sourced_dependencies_from_file(&path);
+                deps_from_file.sort_by(cmp_dep);
+
+                assert_eq!(deps_from_file, deps_from_metadata);
+            }
+        }
+    }
+
+    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal dependency.
+
+    #[test]
+    fn cargo() {
+        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps.json");
+
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox"));
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    #[test]
+    fn cargo_no_dev() {
+        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps_no_dev.json");
+
+        assert!(deps.iter().all(|dep| dep.package.name != "snapbox"));
+        assert!(deps.iter().all(|dep| dep.package.name != "snapbox-macros"));
+    }
+
+    #[test]
+    fn snapbox() {
+        let deps = sourced_dependencies_from_file("dep_tests/snapbox_0.4.11.deps.json");
+
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    fn sourced_dependencies_from_file(path: impl AsRef<Path>) -> Vec<SourcedPackage> {
+        let contents = read_to_string(path).unwrap();
+        serde_json::from_str::<Vec<SourcedPackage>>(&contents).unwrap()
+    }
+
+    fn cmp_dep(left: &SourcedPackage, right: &SourcedPackage) -> Ordering {
+        left.package.id.cmp(&right.package.id)
+    }
+
+    fn enabled(key: &str) -> bool {
+        var(key).map_or(false, |value| value != "0")
+    }
 }
