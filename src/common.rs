@@ -1,18 +1,22 @@
 use anyhow::bail;
 use cargo_metadata::{
-    CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, MetadataCommand, Package, PackageId,
+    semver::VersionReq, CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, Dependency,
+    DependencyKind, Metadata, MetadataCommand, Package, PackageId,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub use crate::cli::MetadataArgs;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(test, derive(serde::Deserialize, serde::Serialize))]
 pub enum PkgSource {
     Local,
     CratesIo,
     Foreign,
 }
+
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(Eq, PartialEq, serde::Deserialize, serde::Serialize))]
 pub struct SourcedPackage {
     pub source: PkgSource,
     pub package: Package,
@@ -45,6 +49,7 @@ fn metadata_command(args: MetadataArgs) -> MetadataCommand {
 pub fn sourced_dependencies(
     metadata_args: MetadataArgs,
 ) -> Result<Vec<SourcedPackage>, anyhow::Error> {
+    let no_dev = metadata_args.no_dev;
     let command = metadata_command(metadata_args);
     let meta = match command.exec() {
         Ok(v) => v,
@@ -52,8 +57,15 @@ pub fn sourced_dependencies(
         Err(err) => bail!("Failed to fetch crate metadata!\n  {}", err),
     };
 
+    sourced_dependencies_from_metadata(meta, no_dev)
+}
+
+fn sourced_dependencies_from_metadata(
+    meta: Metadata,
+    no_dev: bool,
+) -> Result<Vec<SourcedPackage>, anyhow::Error> {
     let mut how: HashMap<PackageId, PkgSource> = HashMap::new();
-    let what: HashMap<PackageId, Package> = meta
+    let mut what: HashMap<PackageId, Package> = meta
         .packages
         .iter()
         .map(|package| (package.id.clone(), package.clone()))
@@ -77,6 +89,10 @@ pub fn sourced_dependencies(
         *how.get_mut(&pkg).unwrap() = PkgSource::Local;
     }
 
+    if no_dev {
+        (how, what) = extract_non_dev_dependencies(&mut how, &mut what);
+    }
+
     let dependencies: Vec<_> = how
         .iter()
         .map(|(id, kind)| {
@@ -89,6 +105,77 @@ pub fn sourced_dependencies(
         .collect();
 
     Ok(dependencies)
+}
+
+#[derive(Eq, Hash, PartialEq)]
+struct Dep {
+    name: String,
+    req: VersionReq,
+}
+
+impl Dep {
+    fn from_cargo_metadata_dependency(dep: &Dependency) -> Self {
+        Self {
+            name: dep.name.clone(),
+            req: dep.req.clone(),
+        }
+    }
+
+    fn matches(&self, pkg: &Package) -> bool {
+        self.name == pkg.name && self.req.matches(&pkg.version)
+    }
+}
+
+/// Start with the `PkgSource::Local` packages, then iteratively add non-dev-dependencies until no more
+/// packages can be added, and return the results.
+///
+/// Note that matching dependencies to packages is "best effort." The fields that Cargo uses to
+/// determine a package's id are its name, version, and source:
+/// https://github.com/rust-lang/cargo/blob/dd5134c7a59e3a3b8587f1ef04a930185d2ca503/src/cargo/core/package_id.rs#L29-L31
+///
+/// When matching dependencies to packages, we use the package's name and version, but not its source
+/// (see [`Dep`]). Experiments suggest that source strings can vary. So comparing them seems risky.
+/// Also, it is better to err on the side of inclusion.
+fn extract_non_dev_dependencies(
+    how: &mut HashMap<PackageId, PkgSource>,
+    what: &mut HashMap<PackageId, Package>,
+) -> (HashMap<PackageId, PkgSource>, HashMap<PackageId, Package>) {
+    let mut how_new = HashMap::new();
+    let mut what_new = HashMap::new();
+
+    let mut ids = how
+        .iter()
+        .filter_map(|(id, source)| {
+            if matches!(source, PkgSource::Local) {
+                Some(id.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    while !ids.is_empty() {
+        let mut deps = HashSet::new();
+
+        for id in ids.drain(..) {
+            for dep in &what.get(&id).unwrap().dependencies {
+                if dep.kind != DependencyKind::Development {
+                    deps.insert(Dep::from_cargo_metadata_dependency(dep));
+                }
+            }
+
+            how_new.insert(id.clone(), how.remove(&id).unwrap());
+            what_new.insert(id.clone(), what.remove(&id).unwrap());
+        }
+
+        for pkg in what.values() {
+            if deps.iter().any(|dep| dep.matches(pkg)) {
+                ids.push(pkg.id.clone());
+            }
+        }
+    }
+
+    (how_new, what_new)
 }
 
 pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> Vec<String> {
@@ -139,4 +226,92 @@ pub fn comma_separated_list(list: &[String]) -> String {
         result.push_str(crate_name.as_str());
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{sourced_dependencies_from_metadata, SourcedPackage};
+    use cargo_metadata::Metadata;
+    use std::{
+        cmp::Ordering,
+        env::var,
+        fs::{read_dir, read_to_string, write},
+        path::Path,
+    };
+
+    #[test]
+    fn deps() {
+        for entry in read_dir("dep_tests").unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            let Some(prefix) = path.to_string_lossy().strip_suffix(".metadata.json").map(ToOwned::to_owned) else {
+                continue;
+            };
+
+            let contents = read_to_string(&path).unwrap();
+
+            // Help ensure private information is not leaked.
+            assert!(var("HOME").map_or(true, |home| !contents.contains(&home)));
+
+            let metadata = serde_json::from_str::<Metadata>(&contents).unwrap();
+
+            for no_dev in [false, true] {
+                let path = prefix.clone() + ".deps" + if no_dev { "_no_dev" } else { "" } + ".json";
+
+                let mut deps_from_metadata =
+                    sourced_dependencies_from_metadata(metadata.clone(), no_dev).unwrap();
+                deps_from_metadata.sort_by(cmp_dep);
+
+                if enabled("BLESS") {
+                    let contents = serde_json::to_string_pretty(&deps_from_metadata).unwrap();
+                    write(path, &contents).unwrap();
+                    continue;
+                }
+
+                let mut deps_from_file = sourced_dependencies_from_file(&path);
+                deps_from_file.sort_by(cmp_dep);
+
+                assert_eq!(deps_from_file, deps_from_metadata);
+            }
+        }
+    }
+
+    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal dependency.
+
+    #[test]
+    fn cargo() {
+        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps.json");
+
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox"));
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    #[test]
+    fn cargo_no_dev() {
+        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps_no_dev.json");
+
+        assert!(deps.iter().all(|dep| dep.package.name != "snapbox"));
+        assert!(deps.iter().all(|dep| dep.package.name != "snapbox-macros"));
+    }
+
+    #[test]
+    fn snapbox() {
+        let deps = sourced_dependencies_from_file("dep_tests/snapbox_0.4.11.deps.json");
+
+        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    fn sourced_dependencies_from_file(path: impl AsRef<Path>) -> Vec<SourcedPackage> {
+        let contents = read_to_string(path).unwrap();
+        serde_json::from_str::<Vec<SourcedPackage>>(&contents).unwrap()
+    }
+
+    fn cmp_dep(left: &SourcedPackage, right: &SourcedPackage) -> Ordering {
+        left.package.id.cmp(&right.package.id)
+    }
+
+    fn enabled(key: &str) -> bool {
+        var(key).map_or(false, |value| value != "0")
+    }
 }
