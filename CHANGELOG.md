@@ -1,3 +1,7 @@
+## v0.3.3 (2023-05-08)
+
+ - Add `--no-dev` flag to omit dev dependencies (contribution by @smoelius)
+
 ## v0.3.2 (2022-11-04)
 
  - Upgrade to `bpaf` 0.7
