@@ -60,7 +60,7 @@ pub(crate) enum PrintJson {
 ///
 ///
 /// Most commands also accept flags controlling the features, targets, etc.
-/// See 'cargo supply-chain <command> --help' for more information on a specific command.
+///  See 'cargo supply-chain <command> --help' for more information on a specific command.
 #[derive(Clone, Debug, Bpaf)]
 #[bpaf(options("supply-chain"), generate(args_parser), version)]
 pub(crate) enum CliArgs {
@@ -151,21 +151,19 @@ mod tests {
     #[test]
     fn test_accepted_query_options() {
         for command in ["crates", "publishers", "json"] {
-            let _ = args_parser().run_inner(Args::from(&[command])).unwrap();
+            let _ = args_parser().run_inner(&[command][..]).unwrap();
+            let _ = args_parser().run_inner(&[command, "-d"][..]).unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "-d"]))
+                .run_inner(&[command, "--diffable"][..])
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "--diffable"]))
+                .run_inner(&[command, "--cache-max-age=7d"][..])
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "--cache-max-age=7d"]))
+                .run_inner(&[command, "-d", "--cache-max-age=7d"][..])
                 .unwrap();
             let _ = args_parser()
-                .run_inner(Args::from(&[command, "-d", "--cache-max-age=7d"]))
-                .unwrap();
-            let _ = args_parser()
-                .run_inner(Args::from(&[command, "--diffable", "--cache-max-age=7d"]))
+                .run_inner(&[command, "--diffable", "--cache-max-age=7d"][..])
                 .unwrap();
         }
     }

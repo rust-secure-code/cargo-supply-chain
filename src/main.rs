@@ -20,7 +20,7 @@ use cli::CliArgs;
 use common::MetadataArgs;
 
 fn main() -> Result<(), anyhow::Error> {
-    let args = cli::args_parser().run();
+    let args = cli::args_parser().fallback_to_usage().run();
     dispatch_command(args)
 }
 
