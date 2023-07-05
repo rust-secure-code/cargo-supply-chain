@@ -21,7 +21,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tar = "0.4.30"
 indicatif = "0.17.0"
-bpaf = { version = "0.7.0", features = ["derive"] }
+bpaf = { version = "0.9.1", features = ["derive", "dull-color"] }
 anyhow = "1.0.28"
 
 [dev-dependencies]
