@@ -241,11 +241,15 @@ mod tests {
 
     #[test]
     fn deps() {
-        for entry in read_dir("dep_tests").unwrap() {
+        for entry in read_dir("deps_tests").unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
 
-            let Some(prefix) = path.to_string_lossy().strip_suffix(".metadata.json").map(ToOwned::to_owned) else {
+            let Some(prefix) = path
+                .to_string_lossy()
+                .strip_suffix(".metadata.json")
+                .map(ToOwned::to_owned)
+            else {
                 continue;
             };
 
@@ -281,7 +285,7 @@ mod tests {
 
     #[test]
     fn cargo() {
-        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps.json");
+        let deps = sourced_dependencies_from_file("deps_tests/cargo_0.70.1.deps.json");
 
         assert!(deps.iter().any(|dep| dep.package.name == "snapbox"));
         assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
@@ -289,7 +293,7 @@ mod tests {
 
     #[test]
     fn cargo_no_dev() {
-        let deps = sourced_dependencies_from_file("dep_tests/cargo_0.70.1.deps_no_dev.json");
+        let deps = sourced_dependencies_from_file("deps_tests/cargo_0.70.1.deps_no_dev.json");
 
         assert!(deps.iter().all(|dep| dep.package.name != "snapbox"));
         assert!(deps.iter().all(|dep| dep.package.name != "snapbox-macros"));
@@ -297,7 +301,7 @@ mod tests {
 
     #[test]
     fn snapbox() {
-        let deps = sourced_dependencies_from_file("dep_tests/snapbox_0.4.11.deps.json");
+        let deps = sourced_dependencies_from_file("deps_tests/snapbox_0.4.11.deps.json");
 
         assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
     }

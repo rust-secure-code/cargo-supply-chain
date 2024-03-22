@@ -7,12 +7,11 @@ authors = ["Andreas Molzer <andreas.molzer@gmx.de>", "Sergey \"Shnatsel\" Davido
 edition = "2018"
 license = "Apache-2.0 OR MIT OR Zlib"
 categories = ["development-tools::cargo-plugins", "command-line-utilities"]
-exclude = ["dep_tests/"]
+exclude = ["deps_tests/"]
 
 [dependencies]
 cargo_metadata = "0.15.0"
 csv = "1.1"
-directories-next = "2"
 flate2 = "1"
 humantime = "2"
 humantime-serde = "1"
@@ -23,6 +22,7 @@ tar = "0.4.30"
 indicatif = "0.17.0"
 bpaf = { version = "0.9.1", features = ["derive", "dull-color"] }
 anyhow = "1.0.28"
+xdg = "2.5"
 
 [dev-dependencies]
 schemars = "0.8.3"

@@ -113,9 +113,9 @@ impl CratesCache {
     }
 
     fn cache_dir() -> Option<PathBuf> {
-        let projects =
-            directories_next::ProjectDirs::from("", "rust-secure-code", "cargo-supply-chain")?;
-        Some(projects.cache_dir().to_owned())
+        xdg::BaseDirectories::with_prefix("cargo-supply-chain")
+            .ok()
+            .map(|base_directories| base_directories.get_cache_home())
     }
 
     /// Re-download the list from the data dumps.
