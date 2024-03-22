@@ -8,7 +8,7 @@ Each of the `.metadata.json` files was generated with a command of the following
 cargo metadata |
 sed "s,${PWD},\$CARGO_MANIFEST_DIR,g" |
 sed "s,${HOME},\$HOME,g" |
-jq --sort-keys > ${CARGO_SUPPLY_CHAIN_DIR}/dep_tests/${PACKAGE}_${VERSION}.metadata.json
+jq --sort-keys > ${CARGO_SUPPLY_CHAIN_DIR}/deps_tests/${PACKAGE}_${VERSION}.metadata.json
 ```
 
 The other files were then generated with the following command:
