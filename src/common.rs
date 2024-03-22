@@ -245,7 +245,11 @@ mod tests {
             let entry = entry.unwrap();
             let path = entry.path();
 
-            let Some(prefix) = path.to_string_lossy().strip_suffix(".metadata.json").map(ToOwned::to_owned) else {
+            let Some(prefix) = path
+                .to_string_lossy()
+                .strip_suffix(".metadata.json")
+                .map(ToOwned::to_owned)
+            else {
                 continue;
             };
 
