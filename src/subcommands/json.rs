@@ -56,7 +56,8 @@ pub fn json(
     let stdout = std::io::stdout();
     let handle = stdout.lock();
     if diffable {
-        serde_json::to_writer_pretty(handle, &output)?;
+        let value = serde_json::to_value(&output)?;
+        serde_json::to_writer_pretty(handle, &value)?;
     } else {
         serde_json::to_writer(handle, &output)?;
     }
