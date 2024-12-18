@@ -12,7 +12,7 @@ pub fn update(max_age: std::time::Duration) -> Result<(), anyhow::Error> {
             DownloadState::Expired => {
                 eprintln!("Successfully updated to the newest daily data dump.");
             }
-            DownloadState::Stale => bail!("Downloaded latest daily data dump.\n  Warning: it matches the previous version that was considered outdated."),
+            DownloadState::Stale => bail!("Latest daily data dump matches the previous version, which was considered outdated."),
         },
         Err(error) => bail!("Could not update to the latest daily data dump!\n{}", error)
     }
