@@ -94,10 +94,7 @@ fn get_with_retry(
     client: &mut RateLimitedClient,
     attempts: u8,
 ) -> Result<ureq::Response, io::Error> {
-    let mut resp = client
-        .get(url)
-        .call()
-        .map_err(io::Error::other)?;
+    let mut resp = client.get(url).call().map_err(io::Error::other)?;
 
     let mut count = 1;
     let mut wait = 5;
@@ -108,10 +105,7 @@ fn get_with_retry(
         );
         std::thread::sleep(std::time::Duration::from_secs(wait));
 
-        resp = client
-            .get(url)
-            .call()
-            .map_err(io::Error::other)?;
+        resp = client.get(url).call().map_err(io::Error::other)?;
 
         count += 1;
         wait *= 3;
