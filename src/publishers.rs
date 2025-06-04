@@ -3,7 +3,7 @@ use crate::crates_cache::{CacheState, CratesCache};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
-    io::{self, ErrorKind},
+    io::{self},
     time::Duration,
 };
 
@@ -97,7 +97,7 @@ fn get_with_retry(
     let mut resp = client
         .get(url)
         .call()
-        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     let mut count = 1;
     let mut wait = 5;
@@ -111,7 +111,7 @@ fn get_with_retry(
         resp = client
             .get(url)
             .call()
-            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
 
         count += 1;
         wait *= 3;

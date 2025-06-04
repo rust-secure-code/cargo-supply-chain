@@ -149,7 +149,7 @@ impl CratesCache {
             }
             request.call()
         }
-        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
         // Not modified.
         if response.status() == 304 {
