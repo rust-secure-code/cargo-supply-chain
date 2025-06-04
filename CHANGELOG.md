@@ -1,3 +1,9 @@
+## v0.3.4 (2025-06-04)
+
+ - Improved the message displayed when the latest data dump is considered outdated (contribution by @smoelius)
+ - Bumped dependencies in Cargo.lock by running `cargo update`
+ - Resolved some Clippy lints
+
 ## v0.3.3 (2023-05-08)
 
  - Add `--no-dev` flag to omit dev dependencies (contribution by @smoelius)
