@@ -1,3 +1,7 @@
+## v0.3.5 (2025-09-18)
+
+ - Fixed support for Windows by switching from `xdg` crate to `dirs` crate for discovering the cache directory
+
 ## v0.3.4 (2025-06-04)
 
  - Improved the message displayed when the latest data dump is considered outdated (contribution by @smoelius)
