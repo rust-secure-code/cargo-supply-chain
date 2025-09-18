@@ -1,5 +1,6 @@
 use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
+use dirs;
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -113,9 +114,7 @@ impl CratesCache {
     }
 
     fn cache_dir() -> Option<PathBuf> {
-        xdg::BaseDirectories::with_prefix("cargo-supply-chain")
-            .ok()
-            .map(|base_directories| base_directories.get_cache_home())
+        dirs::cache_dir()
     }
 
     /// Re-download the list from the data dumps.
