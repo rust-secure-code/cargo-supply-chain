@@ -1,7 +1,7 @@
 use crate::api_client::RateLimitedClient;
 use crate::publishers::{PublisherData, PublisherKind};
-use flate2::read::GzDecoder;
 use dirs;
+use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, HashMap},
