@@ -10,7 +10,7 @@ categories = ["development-tools::cargo-plugins", "command-line-utilities"]
 exclude = ["deps_tests/"]
 
 [dependencies]
-cargo_metadata = "0.15.0"
+cargo_metadata = "0.19.0"
 csv = "1.1"
 flate2 = "1"
 humantime = "2"
