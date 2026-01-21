@@ -231,7 +231,7 @@ pub fn comma_separated_list(list: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{sourced_dependencies_from_metadata, SourcedPackage};
-    use cargo_metadata::Metadata;
+    use cargo_metadata::{Metadata, MetadataCommand};
     use std::{
         cmp::Ordering,
         env::var,
@@ -281,7 +281,8 @@ mod tests {
         }
     }
 
-    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal dependency.
+    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal
+    // dependency.
 
     #[test]
     fn cargo() {
@@ -304,6 +305,22 @@ mod tests {
         let deps = sourced_dependencies_from_file("deps_tests/snapbox_0.4.11.deps.json");
 
         assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    #[test]
+    fn optional_dependency_excluded_when_not_activated() {
+        let metadata = MetadataCommand::new()
+            .current_dir("fixtures/optional_non_dev_dep")
+            .exec()
+            .unwrap();
+
+        let deps = sourced_dependencies_from_metadata(metadata.clone(), false).unwrap();
+        assert!(deps.iter().any(|dep| dep.package.name == "libz-rs-sys"));
+
+        let deps_no_dev = sourced_dependencies_from_metadata(metadata, true).unwrap();
+        assert!(!deps_no_dev
+            .iter()
+            .any(|dep| dep.package.name == "libz-rs-sys"));
     }
 
     fn sourced_dependencies_from_file(path: impl AsRef<Path>) -> Vec<SourcedPackage> {

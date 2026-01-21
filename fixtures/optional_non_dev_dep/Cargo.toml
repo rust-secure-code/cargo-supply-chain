@@ -1,0 +1,13 @@
+[package]
+name = "optional_non_dev_dep"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+libz-rs-sys = { version = "=0.5.5", optional = true }
+
+[dev-dependencies]
+libz-rs-sys = "=0.5.5"
+
+[workspace]
