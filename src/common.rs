@@ -1,7 +1,7 @@
 use anyhow::bail;
 use cargo_metadata::{
-    semver::VersionReq, CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, Dependency,
-    DependencyKind, Metadata, MetadataCommand, Package, PackageId,
+    CargoOpt::AllFeatures, CargoOpt::NoDefaultFeatures, DependencyKind, Metadata, MetadataCommand,
+    NodeDep, Package, PackageId,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -85,12 +85,12 @@ fn sourced_dependencies_from_metadata(
         }
     }
 
-    for pkg in meta.workspace_members {
-        *how.get_mut(&pkg).unwrap() = PkgSource::Local;
+    for pkg in &meta.workspace_members {
+        *how.get_mut(pkg).unwrap() = PkgSource::Local;
     }
 
     if no_dev {
-        (how, what) = extract_non_dev_dependencies(&mut how, &mut what);
+        (how, what) = extract_non_dev_dependencies(&meta, &mut how, &mut what);
     }
 
     let dependencies: Vec<_> = how
@@ -107,41 +107,29 @@ fn sourced_dependencies_from_metadata(
     Ok(dependencies)
 }
 
-#[derive(Eq, Hash, PartialEq)]
-struct Dep {
-    name: String,
-    req: VersionReq,
-}
-
-impl Dep {
-    fn from_cargo_metadata_dependency(dep: &Dependency) -> Self {
-        Self {
-            name: dep.name.clone(),
-            req: dep.req.clone(),
-        }
-    }
-
-    fn matches(&self, pkg: &Package) -> bool {
-        self.name == pkg.name && self.req.matches(&pkg.version)
-    }
-}
-
-/// Start with the `PkgSource::Local` packages, then iteratively add non-dev-dependencies until no more
-/// packages can be added, and return the results.
+/// Start with the `PkgSource::Local` packages, then iteratively add non-dev-dependencies until no
+/// more packages can be added, and return the results.
 ///
-/// Note that matching dependencies to packages is "best effort." The fields that Cargo uses to
-/// determine a package's id are its name, version, and source:
-/// https://github.com/rust-lang/cargo/blob/dd5134c7a59e3a3b8587f1ef04a930185d2ca503/src/cargo/core/package_id.rs#L29-L31
-///
-/// When matching dependencies to packages, we use the package's name and version, but not its source
-/// (see [`Dep`]). Experiments suggest that source strings can vary. So comparing them seems risky.
-/// Also, it is better to err on the side of inclusion.
+/// This function uses the resolved dependency graph from `cargo metadata` to determine which
+/// dependencies are actually used. This function does _not_ use the declared dependencies, which
+/// may include optional dependencies that aren't actually used.
 fn extract_non_dev_dependencies(
+    meta: &Metadata,
     how: &mut HashMap<PackageId, PkgSource>,
     what: &mut HashMap<PackageId, Package>,
 ) -> (HashMap<PackageId, PkgSource>, HashMap<PackageId, Package>) {
     let mut how_new = HashMap::new();
     let mut what_new = HashMap::new();
+
+    let Some(resolve) = &meta.resolve else {
+        return (HashMap::new(), HashMap::new());
+    };
+
+    let node_deps: HashMap<&PackageId, &[NodeDep]> = resolve
+        .nodes
+        .iter()
+        .map(|node| (&node.id, node.deps.as_slice()))
+        .collect();
 
     let mut ids = how
         .iter()
@@ -158,9 +146,15 @@ fn extract_non_dev_dependencies(
         let mut deps = HashSet::new();
 
         for id in ids.drain(..) {
-            for dep in &what.get(&id).unwrap().dependencies {
-                if dep.kind != DependencyKind::Development {
-                    deps.insert(Dep::from_cargo_metadata_dependency(dep));
+            if let Some(node_deps) = node_deps.get(&id) {
+                for dep in *node_deps {
+                    if dep
+                        .dep_kinds
+                        .iter()
+                        .any(|info| info.kind != DependencyKind::Development)
+                    {
+                        deps.insert(&dep.pkg);
+                    }
                 }
             }
 
@@ -168,9 +162,9 @@ fn extract_non_dev_dependencies(
             what_new.insert(id.clone(), what.remove(&id).unwrap());
         }
 
-        for pkg in what.values() {
-            if deps.iter().any(|dep| dep.matches(pkg)) {
-                ids.push(pkg.id.clone());
+        for pkg_id in what.keys() {
+            if deps.contains(pkg_id) {
+                ids.push(pkg_id.clone());
             }
         }
     }
@@ -231,7 +225,7 @@ pub fn comma_separated_list(list: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{sourced_dependencies_from_metadata, SourcedPackage};
-    use cargo_metadata::Metadata;
+    use cargo_metadata::{Metadata, MetadataCommand};
     use std::{
         cmp::Ordering,
         env::var,
@@ -281,7 +275,8 @@ mod tests {
         }
     }
 
-    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal dependency.
+    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal
+    // dependency.
 
     #[test]
     fn cargo() {
@@ -304,6 +299,22 @@ mod tests {
         let deps = sourced_dependencies_from_file("deps_tests/snapbox_0.4.11.deps.json");
 
         assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
+    }
+
+    #[test]
+    fn optional_dependency_excluded_when_not_activated() {
+        let metadata = MetadataCommand::new()
+            .current_dir("fixtures/optional_non_dev_dep")
+            .exec()
+            .unwrap();
+
+        let deps = sourced_dependencies_from_metadata(metadata.clone(), false).unwrap();
+        assert!(deps.iter().any(|dep| dep.package.name == "libz-rs-sys"));
+
+        let deps_no_dev = sourced_dependencies_from_metadata(metadata, true).unwrap();
+        assert!(!deps_no_dev
+            .iter()
+            .any(|dep| dep.package.name == "libz-rs-sys"));
     }
 
     fn sourced_dependencies_from_file(path: impl AsRef<Path>) -> Vec<SourcedPackage> {
