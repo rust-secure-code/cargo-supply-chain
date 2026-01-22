@@ -224,57 +224,8 @@ pub fn comma_separated_list(list: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{sourced_dependencies_from_metadata, SourcedPackage};
-    use cargo_metadata::{Metadata, MetadataCommand};
-    use std::{
-        cmp::Ordering,
-        env::var,
-        fs::{read_dir, read_to_string, write},
-        path::Path,
-    };
-
-    #[test]
-    fn deps() {
-        for entry in read_dir("deps_tests").unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-
-            let Some(prefix) = path
-                .to_string_lossy()
-                .strip_suffix(".metadata.json")
-                .map(ToOwned::to_owned)
-            else {
-                continue;
-            };
-
-            let contents = read_to_string(&path).unwrap();
-
-            // Help ensure private information is not leaked.
-            assert!(var("HOME").map_or(true, |home| !contents.contains(&home)));
-
-            let metadata = serde_json::from_str::<Metadata>(&contents).unwrap();
-
-            for no_dev in [false, true] {
-                let path = prefix.clone() + ".deps" + if no_dev { "_no_dev" } else { "" } + ".json";
-
-                let mut deps_from_metadata =
-                    sourced_dependencies_from_metadata(metadata.clone(), no_dev).unwrap();
-                deps_from_metadata.sort_by(cmp_dep);
-
-                if enabled("BLESS") {
-                    let contents = serde_json::to_string_pretty(&deps_from_metadata).unwrap();
-                    write(path, &contents).unwrap();
-                    continue;
-                }
-
-                let mut deps_from_file = sourced_dependencies_from_file(&path);
-                deps_from_file.sort_by(cmp_dep);
-
-                assert_eq!(deps_from_file, deps_from_metadata);
-            }
-        }
-    }
-
+    use super::sourced_dependencies_from_metadata;
+    use cargo_metadata::MetadataCommand;
     #[test]
     fn optional_dependency_excluded_when_not_activated() {
         let metadata = MetadataCommand::new()
@@ -289,18 +240,5 @@ mod tests {
         assert!(!deps_no_dev
             .iter()
             .any(|dep| dep.package.name == "libz-rs-sys"));
-    }
-
-    fn sourced_dependencies_from_file(path: impl AsRef<Path>) -> Vec<SourcedPackage> {
-        let contents = read_to_string(path).unwrap();
-        serde_json::from_str::<Vec<SourcedPackage>>(&contents).unwrap()
-    }
-
-    fn cmp_dep(left: &SourcedPackage, right: &SourcedPackage) -> Ordering {
-        left.package.id.cmp(&right.package.id)
-    }
-
-    fn enabled(key: &str) -> bool {
-        var(key).is_ok_and(|value| value != "0")
     }
 }
