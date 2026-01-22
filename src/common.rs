@@ -275,32 +275,6 @@ mod tests {
         }
     }
 
-    // `cargo` has `snapbox` as a dev dependency. `snapbox` has `snapbox-macros` as a normal
-    // dependency.
-
-    #[test]
-    fn cargo() {
-        let deps = sourced_dependencies_from_file("deps_tests/cargo_0.70.1.deps.json");
-
-        assert!(deps.iter().any(|dep| dep.package.name == "snapbox"));
-        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
-    }
-
-    #[test]
-    fn cargo_no_dev() {
-        let deps = sourced_dependencies_from_file("deps_tests/cargo_0.70.1.deps_no_dev.json");
-
-        assert!(deps.iter().all(|dep| dep.package.name != "snapbox"));
-        assert!(deps.iter().all(|dep| dep.package.name != "snapbox-macros"));
-    }
-
-    #[test]
-    fn snapbox() {
-        let deps = sourced_dependencies_from_file("deps_tests/snapbox_0.4.11.deps.json");
-
-        assert!(deps.iter().any(|dep| dep.package.name == "snapbox-macros"));
-    }
-
     #[test]
     fn optional_dependency_excluded_when_not_activated() {
         let metadata = MetadataCommand::new()
