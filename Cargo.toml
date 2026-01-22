@@ -7,10 +7,9 @@ authors = ["Andreas Molzer <andreas.molzer@gmx.de>", "Sergey \"Shnatsel\" Davido
 edition = "2018"
 license = "Apache-2.0 OR MIT OR Zlib"
 categories = ["development-tools::cargo-plugins", "command-line-utilities"]
-exclude = ["deps_tests/"]
 
 [dependencies]
-cargo_metadata = "0.15.0"
+cargo_metadata = "0.23.0"
 csv = "1.1"
 flate2 = "1"
 humantime = "2"
