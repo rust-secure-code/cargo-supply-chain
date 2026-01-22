@@ -176,7 +176,7 @@ pub fn crate_names_from_source(crates: &[SourcedPackage], source: PkgSource) -> 
     let mut filtered_crate_names: Vec<String> = crates
         .iter()
         .filter(|p| p.source == source)
-        .map(|p| p.package.name.clone())
+        .map(|p| p.package.name.to_string())
         .collect();
     // Collecting into a HashSet is less user-friendly because order varies between runs
     filtered_crate_names.sort_unstable();
