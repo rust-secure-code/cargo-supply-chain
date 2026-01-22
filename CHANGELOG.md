@@ -1,3 +1,9 @@
+## v0.3.6 (2026-01-22)
+
+ - Fixed the tool reporting transitive optional dependencies that are disabled by features as part of supply chain surface
+ - Removed test JSON data from the git tree, matching the crates.io package to the git state again
+ - Upgraded to cargo-metadata v0.23
+
 ## v0.3.5 (2025-09-18)
 
  - Fixed support for Windows by switching from `xdg` crate to `dirs` crate for discovering the cache directory
