@@ -196,7 +196,7 @@ impl CratesCache {
                     bar.set_message(name.to_string());
                 }
             }
-            if entry.path_bytes().ends_with(b"crate_owners.csv") {
+            if entry_path_ends_with(&entry, "crate_owners.csv") {
                 let owners: Vec<CrateOwner> = read_csv_data(entry)?;
                 cache_updater.store_multi_map(
                     &mut self.crate_owners,
@@ -204,7 +204,7 @@ impl CratesCache {
                     owners.as_slice(),
                     &|owner| owner.crate_id,
                 )?;
-            } else if entry.path_bytes().ends_with(b"crates.csv") {
+            } else if entry_path_ends_with(&entry, "crates.csv") {
                 let crates: Vec<Crate> = read_csv_data(entry)?;
                 cache_updater.store_map(
                     &mut self.crates,
@@ -212,7 +212,7 @@ impl CratesCache {
                     crates.as_slice(),
                     &|crate_| crate_.name.clone(),
                 )?;
-            } else if entry.path_bytes().ends_with(b"users.csv") {
+            } else if entry_path_ends_with(&entry, "users.csv") {
                 let users: Vec<User> = read_csv_data(entry)?;
                 cache_updater.store_map(
                     &mut self.users,
@@ -220,7 +220,7 @@ impl CratesCache {
                     users.as_slice(),
                     &|user| user.id,
                 )?;
-            } else if entry.path_bytes().ends_with(b"teams.csv") {
+            } else if entry_path_ends_with(&entry, "teams.csv") {
                 let teams: Vec<Team> = read_csv_data(entry)?;
                 cache_updater.store_map(
                     &mut self.teams,
@@ -228,7 +228,7 @@ impl CratesCache {
                     teams.as_slice(),
                     &|team| team.id,
                 )?;
-            } else if entry.path_bytes().ends_with(b"metadata.json") {
+            } else if entry_path_ends_with(&entry, "metadata.json") {
                 let meta: Metadata = serde_json::from_reader(entry)?;
                 cache_updater.store(
                     &mut self.metadata,
@@ -372,6 +372,16 @@ impl CratesCache {
             .load_cached(&mut self.versions, Self::VERSIONS_FS)
             .ok()
     }
+}
+
+fn entry_path_ends_with<R: io::Read>(entry: &tar::Entry<R>, needle: &str) -> bool {
+    let Ok(path) = entry.path() else {
+        return false;
+    };
+    let Some(file_name) = path.file_name() else {
+        return false;
+    };
+    file_name == needle
 }
 
 fn read_csv_data<T: serde::de::DeserializeOwned>(
