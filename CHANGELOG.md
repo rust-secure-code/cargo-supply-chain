@@ -1,3 +1,7 @@
+## v0.3.7 (2026-02-05)
+
+ - Updated the caching code to handle the recent changes to crates.io dump format
+
 ## v0.3.6 (2026-01-22)
 
  - Fixed the tool reporting transitive optional dependencies that are disabled by features as part of supply chain surface
