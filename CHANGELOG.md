@@ -1,3 +1,7 @@
+## Unreleased
+
+ - Fixed `cargo supply-chain update` failing after crates.io removed `gh_login` from its user CSV dump, while preserving compatibility with existing caches
+
 ## v0.3.7 (2026-02-05)
 
  - Updated the caching code to handle the recent changes to crates.io dump format

@@ -90,6 +90,28 @@ struct User {
     name: Option<String>,
 }
 
+// Keep the dump schema separate from the existing JSON cache format.
+#[derive(Deserialize)]
+struct CsvUser {
+    id: u64,
+    gh_avatar: Option<String>,
+    gh_id: Option<String>,
+    username: String,
+    name: Option<String>,
+}
+
+impl From<CsvUser> for User {
+    fn from(user: CsvUser) -> Self {
+        Self {
+            id: user.id,
+            gh_avatar: user.gh_avatar,
+            gh_id: user.gh_id,
+            gh_login: user.username,
+            name: user.name,
+        }
+    }
+}
+
 impl CratesCache {
     const METADATA_FS: &'static str = "metadata.json";
     const CRATES_FS: &'static str = "crates.json";
@@ -213,7 +235,10 @@ impl CratesCache {
                     &|crate_| crate_.name.clone(),
                 )?;
             } else if entry_path_ends_with(&entry, "users.csv") {
-                let users: Vec<User> = read_csv_data(entry)?;
+                let users: Vec<User> = read_csv_data::<CsvUser>(entry)?
+                    .into_iter()
+                    .map(User::from)
+                    .collect();
                 cache_updater.store_map(
                     &mut self.users,
                     Self::USERS_FS,
