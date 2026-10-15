@@ -86,6 +86,8 @@ struct User {
     id: u64,
     gh_avatar: Option<String>,
     gh_id: Option<String>,
+    // Accept the dump's new field name while preserving the JSON cache format.
+    #[serde(alias = "username")]
     gh_login: String,
     name: Option<String>,
 }
@@ -393,6 +395,42 @@ fn read_csv_data<T: serde::de::DeserializeOwned>(
         .quoting(true)
         .from_reader(from);
     reader.deserialize().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{read_csv_data, User};
+    use serde_json::json;
+
+    #[test]
+    fn current_user_csv_preserves_cache_format() {
+        let csv = "created_at,gh_id,id,name,username\n2026-10-01,123,42,Example,example\n";
+        let users: Vec<User> = read_csv_data(csv.as_bytes()).unwrap();
+        assert_eq!(users.len(), 1);
+        assert_eq!(
+            serde_json::to_value(&users[0]).unwrap(),
+            json!({
+                "id": 42,
+                "gh_avatar": null,
+                "gh_id": "123",
+                "gh_login": "example",
+                "name": "Example"
+            })
+        );
+    }
+
+    #[test]
+    fn existing_user_cache_round_trips() {
+        let cached = json!({
+            "id": 42,
+            "gh_avatar": "https://example.com/avatar.png",
+            "gh_id": "123",
+            "gh_login": "example",
+            "name": "Example"
+        });
+        let user: User = serde_json::from_value(cached.clone()).unwrap();
+        assert_eq!(serde_json::to_value(user).unwrap(), cached);
+    }
 }
 
 impl MetadataStored {
